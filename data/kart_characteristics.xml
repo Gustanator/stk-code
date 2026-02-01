@@ -63,7 +63,7 @@
                 a given speed. The actual steering angle is dependent on the
                 wheel base of the kart: radius = wheel_base/sin(steering_angle).
                 The values below define that at speed 0 the turn radius is 3, at
-                speed 4 the radius is 3.6, at speed 8 the radius is 5, etc.
+                speed 4 the radius is 3.6, at speed 8 the radius is 6, etc.
                 The actual turn radius is piece-wise linearly interpolated. This
                 allows for tighter turning at lower speeds. If the speed is higher
                 than the highest defined one in the turn-radius array, the radius
@@ -97,7 +97,7 @@
                 so to avoid small speed increases having a strong effect on turn
                 radius.
                  -->
-        <turn radius="0:3 4:3.6 8:5 12:7.4 16:10.4 22:15 30:21.5 50:38.2"
+        <turn radius="0:3 4:3.6 8:6 12:8.4 16:12.4 22:18 30:23.5 50:40"
               time-full-steer="0:0.1 0.3:0.1 0.3:0.14 0.6:0.14 0.6:0.21 1.0:0.21"
               speed-factor="1.0" speed-factor-partial-lb="8.0"
               speed-factor-partial-ub="16.0"/>
