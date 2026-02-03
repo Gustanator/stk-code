@@ -438,7 +438,7 @@ void SoccerSetupScreen::updateKartViewsLayout()
 
     // Compute/get some dimensions
     const int nb_columns = 2;   // two karts maximum per column
-    const int kart_area_width = (int)((central_div->m_w) / 2 * 0.8f); // size of one half of the screen with some margin
+    const int kart_area_width = (int)((central_div->m_w) / 2 * 1.2f); // size of one half of the screen with some margin
     const int kart_view_size = kart_area_width/nb_columns;  // Size (width and height) of a kart view
     const int center_x = central_div->m_x + central_div->m_w/2;
     const int center_y = central_div->m_y + central_div->m_h/2;
@@ -453,8 +453,8 @@ void SoccerSetupScreen::updateKartViewsLayout()
     const int nb_rows_per_team[2] = { (nb_karts_per_team[0] + nb_columns - 1) / nb_columns,
                                       (nb_karts_per_team[1] + nb_columns - 1) / nb_columns};
     // - where to start vertically
-    const int start_y[2] = {center_y - nb_rows_per_team[0] * kart_view_size / 2,
-                            center_y - nb_rows_per_team[1] * kart_view_size / 2};
+    const float start_y[2] = {center_y - nb_rows_per_team[0] * kart_view_size / 2.15f,
+                              center_y - nb_rows_per_team[1] * kart_view_size / 2.15f};
     // - center of each half-screen
     const int center_x_per_team[2] = {  ( central_div->m_x                  + center_x ) / 2,
                                         ( central_div->m_x+central_div->m_w + center_x ) / 2,
