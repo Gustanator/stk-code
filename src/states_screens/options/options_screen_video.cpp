@@ -174,8 +174,9 @@ void OptionsScreenVideo::init()
     scale_rtts->addLabel("200%");
 
     // --- set gfx settings values
-    updateGfxSlider(); // Also updates the RTTS slider
+    updateGfxSlider();
     updateBlurSlider();
+    updateScaleRTTsSlider();
 
     // ---- forbid changing graphic settings from in-game
     // (we need to disable them last because some items can't be edited when
@@ -183,27 +184,13 @@ void OptionsScreenVideo::init()
     bool in_game = StateManager::get()->getGameState() == GUIEngine::INGAME_MENU;
 
     gfx->setActive(!in_game && CVS->isGLSL());
-    // Outside of pauses, the GFX slider update already overwrites the pause tooltip.
-    // Running updatePauseTooltip would incorrectly disable the list of gfx settings.
-    if (in_game && CVS->isGLSL())
-        OptionsCommon::updatePauseTooltip(gfx, true);
-
     getWidget<ButtonWidget>("custom")->setActive(!in_game || !CVS->isGLSL());
-    OptionsCommon::updatePauseTooltip(getWidget<ButtonWidget>("custom"), in_game && CVS->isGLSL());
-
-    if (scale_rtts->isActivated())
+    if (getWidget<SpinnerWidget>("scale_rtts")->isActivated())
     {
-        scale_rtts->setActive(!in_game || GE::getDriver()->getDriverType() == video::EDT_VULKAN);
-        OptionsCommon::updatePauseTooltip(scale_rtts,
-            in_game && GE::getDriver()->getDriverType() != video::EDT_VULKAN);
+        getWidget<SpinnerWidget>("scale_rtts")->setActive(!in_game ||
+            GE::getDriver()->getDriverType() == video::EDT_VULKAN);
     }
-
     getWidget<ButtonWidget>("benchmarkCurrent")->setActive(!in_game);
-    // Handle the setting/unsetting as we use a custom tooltip message
-    if (in_game)
-        getWidget<ButtonWidget>("benchmarkCurrent")->setTooltip(_("Performance tests are not possible during a race."));
-    else
-        getWidget<ButtonWidget>("benchmarkCurrent")->unsetTooltip();
 
     // If a benchmark was requested and the game had to reload
     // the graphics engine, start the benchmark when the
@@ -325,13 +312,13 @@ void OptionsScreenVideo::updateTooltip()
     else
     {
         tooltip = tooltip + L"\n" + _("Shadows: %i", UserConfigParams::m_shadows_resolution);
-        tooltip = tooltip + L"\n" +
+        tooltip = tooltip + L"\n" + 
             (UserConfigParams::m_pcss ?  _("Soft shadows: Enabled") :
                                          _("Soft shadows: Disabled"));
     }
 
     //I18N: in the graphical options
-    tooltip = tooltip + L"\n" +
+    tooltip = tooltip + L"\n" + 
         (UserConfigParams::m_mlaa ? _("Anti-aliasing: Enabled") :
                                     _("Anti-aliasing: Disabled"));
     //I18N: in the graphical options
