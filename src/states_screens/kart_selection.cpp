@@ -982,7 +982,7 @@ void KartSelectionScreen::updateKartWidgetModel(int widget_id,
         w3->clearModels();
         core::matrix4 model_location;
         model_location.setTranslation(core::vector3df(0.0f, -12.0f, 0.0f));
-        model_location.setScale(core::vector3df(35.0f, 35.0f, 35.0f));
+        model_location.setScale(core::vector3df(45.0f, 45.0f, 45.0f));
         w3->addModel(model, model_location);
         w3->update(0);
         m_kart_widgets[widget_id].m_kart_name
@@ -993,7 +993,7 @@ void KartSelectionScreen::updateKartWidgetModel(int widget_id,
     {
         w3->clearModels();
         core::matrix4 model_location;
-        model_location.setScale(core::vector3df(15.0f, 15.0f, 15.0f));
+        model_location.setScale(core::vector3df(45.0f, 45.0f, 45.0f));
         file_manager->pushTextureSearchPath
             (file_manager->getAsset(FileManager::MODEL,""), "models");
         w3->addModel(irr_driver->getAnimatedMesh(
@@ -1021,11 +1021,11 @@ void KartSelectionScreen::updateKartWidgetModel(int widget_id,
         {
             const KartModel &kart_model = kp->getMasterKartModel();
 
-            float scale = 35.0f;
+            float scale = 50.0f;
             if (kart_model.getLength() > 1.45f)
             {
                 // if kart is too long, size it down a bit so that it fits
-                scale = 30.0f;
+                scale = 45.0f;
             }
 
             core::matrix4 model_location;
