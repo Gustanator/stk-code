@@ -628,7 +628,7 @@ void RacePausedDialog::updateTouchDeviceIcon()
                                                 "android/gyroscope_icon.png"));
         break;
     case MULTITOUCH_CONTROLS_BUTTONS:
-        widget->setLabel(_("Right/Left Buttons"));
+        widget->setLabel(_("Left/Right Buttons"));
         widget->setImage(irr_driver->getTexture(FileManager::GUI_ICON,
                                                 "android/accelerator_icon.png"));
         break;

@@ -13,7 +13,7 @@
                 <icon-button id="gyroscope" width="128" height="128"
                         icon="gui/icons/android/gyroscope_icon.png" I18N="Control type" text="Gyroscope"/>
                 <icon-button id="buttons" width="128" height="128"
-                        icon="gui/icons/android/accelerator_icon.png" I18N="Control type" text="Right/Left Buttons"/>
+                        icon="gui/icons/android/accelerator_icon.png" I18N="Control type" text="Left/Right Buttons"/>
                 <icon-button id="steering_wheel" width="128" height="128"
                         icon="gui/icons/android/steering_wheel.png" I18N="Control type" text="Steering wheel"/>
             </ribbon>
