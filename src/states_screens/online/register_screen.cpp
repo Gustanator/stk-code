@@ -15,9 +15,11 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+
 #include "states_screens/online/register_screen.hpp"
 
 #include "config/player_manager.hpp"
+#include "config/stk_config.hpp"
 #include "config/user_config.hpp"
 #include "audio/sfx_manager.hpp"
 #include "guiengine/widgets/button_widget.hpp"
@@ -256,9 +258,6 @@ void RegisterScreen::makeEntryFieldsVisible()
  */
 void RegisterScreen::handleLocalName(const stringw &local_name)
 {
-    if (local_name.size() == 0)
-        return;
-
     // If a local player with that name does not exist, create one
     if(!PlayerManager::get()->getPlayer(local_name))
     {
@@ -306,6 +305,13 @@ void RegisterScreen::doRegister()
     {
         m_info_widget->setErrorColor();
         m_info_widget->setText(_("User name cannot be empty."), false);
+        return;
+    }
+    // Limit the lenght username to 30 characters
+    else if (local_name.size() > stk_config->m_max_username_length)
+    {
+        m_info_widget->setErrorColor();
+        m_info_widget->setText(_("Username is too long."), false);
         return;
     }
 
