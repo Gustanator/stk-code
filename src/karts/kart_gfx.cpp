@@ -57,9 +57,19 @@ KartGFX::KartGFX(const AbstractKart *kart, bool is_day)
 #ifndef SERVER_ONLY
     if (!GUIEngine::isNoGraphics() && supportsLight())
     {
-        m_nitro_light = irr_driver->addLight(location, /*force*/ 0.4f,
-                                             /*radius*/ 5.0f, 0.0f, 0.4f, 1.0f,
-                                             false, node);
+        if (m_kart->getIdent() == "nolok")
+        {
+            m_nitro_light = irr_driver->addLight(location, /*force*/ 0.4f,
+                                                 /*radius*/ 5.0f, 1.00f, 0.17f, 0.60f,
+                                                 false, node);
+        }
+        else
+        {
+            m_nitro_light = irr_driver->addLight(location, /*force*/ 0.4f,
+                                                 /*radius*/ 5.0f, 0.0f, 0.4f, 1.0f,
+                                                 false, node);
+        }
+
         m_nitro_light->setVisible(false);
 #ifdef DEBUG
         m_nitro_light->setName( ("nitro emitter (" + m_kart->getIdent()
@@ -107,12 +117,17 @@ KartGFX::KartGFX(const AbstractKart *kart, bool is_day)
     if (!km->hasNitroEmitters())
         rear_nitro_right = rear_nitro_left = rear_nitro_center;
 
+    // Change nitro color on Nolok's kart
+    bool is_nolok = m_kart->getIdent() == "nolok";
+    const char *nitro_xml = is_nolok ? "nitro-nolok.xml" : "nitro.xml";
+    const char *nitro_smoke_xml = is_nolok ? "nitro-smoke-nolok.xml" : "nitro-smoke.xml";
+
     // Create all effects. Note that they must be created
     // in the order of KartGFXType.
-    addEffect(KGFX_NITRO1,      "nitro.xml",       rear_nitro_right, true );
-    addEffect(KGFX_NITRO2,      "nitro.xml",       rear_nitro_left,  true );
-    addEffect(KGFX_NITROSMOKE1, "nitro-smoke.xml", rear_nitro_left,  false);
-    addEffect(KGFX_NITROSMOKE2, "nitro-smoke.xml", rear_nitro_right, false);
+    addEffect(KGFX_NITRO1,      nitro_xml,       rear_nitro_right, true );
+    addEffect(KGFX_NITRO2,      nitro_xml,       rear_nitro_left,  true );
+    addEffect(KGFX_NITROSMOKE1, nitro_smoke_xml, rear_nitro_left,  false);
+    addEffect(KGFX_NITROSMOKE2, nitro_smoke_xml, rear_nitro_right, false);
     addEffect(KGFX_ZIPPER,      "zipper_fire.xml", rear_center,      true );
     addEffect(KGFX_TERRAIN,     "smoke.xml",       Vec3(0, 0, 0),    false);
     addEffect(KGFX_SKID1L,      "skid1.xml",       rear_left,        true );
