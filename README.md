@@ -6,7 +6,7 @@
 [![#supertuxkart on the libera IRC network](https://img.shields.io/badge/libera-%23supertuxkart-brightgreen.svg)](https://web.libera.chat/?channels=#supertuxkart)
 
 ---
-This fork is *not maintained by Official STK Team*, but by actually GustaLOLE and pedropaulosuzuki, and have additional contnt and features that the Official SuperTuxKart version don't have.
+This fork is *not maintained by Official STK Team*, but by actually GustaLOLE and pedropaulosuzuki, and have additional content and features that the Official SuperTuxKart version don't have.
 ---
 
 SuperTuxKart Plus is a free kart racing game. It focuses on fun and not on realistic kart physics. Instructions can be found on the in-game help page.
