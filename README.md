@@ -1,15 +1,19 @@
-# SuperTuxKart
-[![Linux build status](https://github.com/supertuxkart/stk-code/actions/workflows/linux.yml/badge.svg)](https://github.com/supertuxkart/stk-code/actions/workflows/linux.yml)
-[![Apple build status](https://github.com/supertuxkart/stk-code/actions/workflows/apple.yml/badge.svg)](https://github.com/supertuxkart/stk-code/actions/workflows/apple.yml)
-[![Windows build status](https://github.com/supertuxkart/stk-code/actions/workflows/windows.yml/badge.svg)](https://github.com/supertuxkart/stk-code/actions/workflows/windows.yml)
-[![Switch build status](https://github.com/supertuxkart/stk-code/actions/workflows/switch.yml/badge.svg)](https://github.com/supertuxkart/stk-code/actions/workflows/switch.yml)
+# SuperTuxKart Plus (Unofficial SuperTuxKart fork)
+[![Linux build status](https://github.com/GustaLOLE/stk-code/actions/workflows/linux.yml/badge.svg)](https://github.com/GustaLOLE/stk-code/actions/workflows/linux.yml)
+[![Apple build status](https://github.com/GustaLOLE/stk-code/actions/workflows/apple.yml/badge.svg)](https://github.com/GustaLOLE/stk-code/actions/workflows/apple.yml)
+[![Windows build status](https://github.com/GustaLOLE/stk-code/actions/workflows/windows.yml/badge.svg)](https://github.com/GustaLOLE/stk-code/actions/workflows/windows.yml)
+[![Switch build status](https://github.com/GustaLOLE/stk-code/actions/workflows/switch.yml/badge.svg)](https://github.com/GustaLOLE/stk-code/actions/workflows/switch.yml)
 [![#supertuxkart on the libera IRC network](https://img.shields.io/badge/libera-%23supertuxkart-brightgreen.svg)](https://web.libera.chat/?channels=#supertuxkart)
 
-SuperTuxKart is a free kart racing game. It focuses on fun and not on realistic kart physics. Instructions can be found on the in-game help page.
+---
+This fork is *not maintained by Official STK Team*, but by actually GustaLOLE and pedropaulosuzuki, and have additional contnt and features that the Official SuperTuxKart version don't have.
+---
 
-The SuperTuxKart homepage can be found at <https://supertuxkart.net/>. There is also our [FAQ](https://supertuxkart.net/FAQ) and information on how get in touch with the [community](https://supertuxkart.net/Community).
+SuperTuxKart Plus is a free kart racing game. It focuses on fun and not on realistic kart physics. Instructions can be found on the in-game help page.
 
-The latest release binaries can be found [here](https://github.com/supertuxkart/stk-code/releases/latest), and those of preview releases [here](https://github.com/supertuxkart/stk-code/releases/preview).
+The Official SuperTuxKart homepage can be found at <https://supertuxkart.net/>. There is also our [FAQ](https://supertuxkart.net/FAQ) and information on how get in touch with the [community](https://supertuxkart.net/Community).
+
+The latest release binaries can be found [here](https://github.com/GustaLOLE/stk-code/releases/latest), and those of preview releases [here](https://github.com/GustaLOLE/stk-code/releases/preview).
 
 ## Hardware Requirements
 Any hardware that supports OpenGL >= 3.3 or OpenGL ES >= 3.0 should be able to run SuperTuxKart. For Android, Android 5.0 or greater is required.
