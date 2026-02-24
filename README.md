@@ -8,6 +8,7 @@
 ---
 This fork is *not maintained by Official STK Team*, but by actually GustaLOLE and pedropaulosuzuki, and have additional content and features that the Official SuperTuxKart version don't have.
 ---
+<img width="128" height="128" alt="STK Plus logo" src="https://github.com/user-attachments/assets/0c4aac47-fc03-468d-8676-32c1bebafe8d" />
 
 SuperTuxKart Plus is a free kart racing game. It focuses on fun and not on realistic kart physics. Instructions can be found on the in-game help page.
 
