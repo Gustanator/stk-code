@@ -264,6 +264,11 @@ void getConfigForDevice(const char* dev)
         auto versions = StringUtils::splitToUInt(device, ',');
         if (versions.size() == 2)
         {
+            // A12 GPU
+            if (versions[0] >= 11)
+            {
+                UserConfigParams::m_shadows_resolution = 512;
+            }
             // A9 GPU
             if (versions[0] >= 8)
             {
@@ -295,6 +300,10 @@ void getConfigForDevice(const char* dev)
         auto versions = StringUtils::splitToUInt(device, ',');
         if (versions.size() == 2)
         {
+            if (versions[0] >= 11)
+            {
+                UserConfigParams::m_shadows_resolution = 512;
+            }
             if (versions[0] >= 7)
             {
                 UserConfigParams::m_dynamic_lights = true;

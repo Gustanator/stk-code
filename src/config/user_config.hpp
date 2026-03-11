@@ -1013,6 +1013,10 @@ namespace UserConfigParams
             PARAM_DEFAULT( BoolUserConfigParam(false,
                            "pcss", &m_graphics_quality,
                            "Enable Percentage Closer Soft Shadows") );
+    PARAM_PREFIX BoolUserConfigParam          m_pointlight_shadows
+            PARAM_DEFAULT( BoolUserConfigParam(false,
+                           "pointlight_shadows", &m_graphics_quality,
+                           "Enable point light shadows") );
     PARAM_PREFIX BoolUserConfigParam          m_degraded_IBL
         PARAM_DEFAULT(BoolUserConfigParam(true,
         "Degraded_IBL", &m_graphics_quality,

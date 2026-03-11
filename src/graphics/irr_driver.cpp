@@ -504,6 +504,16 @@ void IrrDriver::initDevice()
         params.ForceLegacyDevice = (UserConfigParams::m_force_legacy_device ||
             UserConfigParams::m_gamepad_visualisation);
 
+        if (UserConfigParams::m_shadows_resolution != 0 &&
+            (UserConfigParams::m_shadows_resolution < 512 ||
+             UserConfigParams::m_shadows_resolution > 4096))
+        {
+            Log::warn("irr_driver",
+                   "Invalid value for UserConfigParams::m_shadows_resolution : %i",
+                (int)UserConfigParams::m_shadows_resolution);
+            UserConfigParams::m_shadows_resolution = 0;
+        }
+
 begin:
 #if !defined(SERVER_ONLY)
         GE::setVideoDriver(NULL);
@@ -544,6 +554,10 @@ begin:
                 UserConfigParams::m_dynamic_lights;
             GE::getGEConfig()->m_ibl =
                 !UserConfigParams::m_degraded_IBL;
+            GE::getGEConfig()->m_shadow_size = UserConfigParams::m_shadows_resolution;
+            GE::getGEConfig()->m_shadow_type =
+                UserConfigParams::m_pointlight_shadows ? GE::GST_COMBINED : GE::GST_SUN;
+            GE::getGEConfig()->m_max_omni_lights = 8;
 #endif
         }
         else
@@ -820,16 +834,6 @@ begin:
     else
         m_renderer = new FixedPipelineRenderer();
 #endif
-
-    if (UserConfigParams::m_shadows_resolution != 0 &&
-        (UserConfigParams::m_shadows_resolution < 512 ||
-         UserConfigParams::m_shadows_resolution > 4096))
-    {
-        Log::warn("irr_driver",
-               "Invalid value for UserConfigParams::m_shadows_resolution : %i",
-            (int)UserConfigParams::m_shadows_resolution);
-        UserConfigParams::m_shadows_resolution = 0;
-    }
 
     // This remaps the window, so it has to be done before the clear to avoid flicker
     //m_device->setResizable(false);
