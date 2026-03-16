@@ -1,4 +1,4 @@
-# SuperTuxKart Plus (Unofficial SuperTuxKart fork)
+# TuxKart Plus (Unofficial SuperTuxKart fork)
 [![Linux build status](https://github.com/GustaLOLE/stk-code/actions/workflows/linux.yml/badge.svg)](https://github.com/GustaLOLE/stk-code/actions/workflows/linux.yml)
 [![Apple build status](https://github.com/GustaLOLE/stk-code/actions/workflows/apple.yml/badge.svg)](https://github.com/GustaLOLE/stk-code/actions/workflows/apple.yml)
 [![Windows build status](https://github.com/GustaLOLE/stk-code/actions/workflows/windows.yml/badge.svg)](https://github.com/GustaLOLE/stk-code/actions/workflows/windows.yml)
@@ -6,11 +6,11 @@
 [![#supertuxkart on the libera IRC network](https://img.shields.io/badge/libera-%23supertuxkart-brightgreen.svg)](https://web.libera.chat/?channels=#supertuxkart)
 
 ---
-This fork is *not maintained by Official STK Team*, but by actually GustaLOLE and pedropaulosuzuki, and have additional content and features that the Official SuperTuxKart version don't have.
+This fork is *not maintained by Official STK Team*, but by actually GustaLOLE and pedropaulosuzuki, and have additional content and features that the upstream SuperTuxKart version don't have.
 ---
 <img width="128" height="128" alt="STK Plus logo" src="https://github.com/user-attachments/assets/0c4aac47-fc03-468d-8676-32c1bebafe8d" />
 
-SuperTuxKart Plus is a free kart racing game. It focuses on fun and not on realistic kart physics. Instructions can be found on the in-game help page.
+TuxKart Plus is a free kart racing game. It focuses on fun and not on realistic kart physics. Instructions can be found on the in-game help page.
 
 The Official SuperTuxKart homepage can be found at <https://supertuxkart.net/>. There is also our [FAQ](https://supertuxkart.net/FAQ) and information on how get in touch with the [community](https://supertuxkart.net/Community).
 
@@ -36,7 +36,7 @@ Building instructions can be found in [`INSTALL.md`](/INSTALL.md)
 
 ## Contributing code
 
-**To contribute code to the official STK repository, please review the ['How to contribute code'](https://supertuxkart.net/How_to_contribute_code) guide.** It contains important guidelines to make the process smoother and maximize the chances that your contribution is accepted.
+**To contribute code to the official STK repository, please review the ['How to contribute code'](https://supertuxkart.net/How_to_contribute_code) guide.** It contains important guidelines to make the process smoother and maximize the chances that your contribution is accepted, but you can contribute here also by just reading this guide and making a pull request [here](https://github.com/GustaLOLE/stk-code/pulls) :) .
 
 ## 3D coordinates
 A reminder for those who are looking at the code and 3D models:
