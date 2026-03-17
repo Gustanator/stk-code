@@ -489,7 +489,7 @@ namespace UserConfigParams
             PARAM_DEFAULT(  IntUserConfigParam(0, "soccer-blue-ai-num",
             &m_race_setup_group, "Number of blue AI karts in soccer mode.") );
     PARAM_PREFIX BoolUserConfigParam          m_karts_powerup_gui
-            PARAM_DEFAULT(  BoolUserConfigParam(false, "karts-powerup-gui",
+            PARAM_DEFAULT(  BoolUserConfigParam(true, "karts-powerup-gui",
             &m_race_setup_group, "Show other karts' held powerups in race gui.") );
     PARAM_PREFIX BoolUserConfigParam          m_soccer_player_list
             PARAM_DEFAULT(  BoolUserConfigParam(false, "soccer-player-list",
@@ -1293,14 +1293,14 @@ namespace UserConfigParams
 
     // ---- settings for powerup display
     PARAM_PREFIX GroupUserConfigParam      m_powerup_setup_group
-        PARAM_DEFAULT( GroupUserConfigParam("PowerUp",
-                                            "PowerUp Setup Settings") );
+        PARAM_DEFAULT( GroupUserConfigParam("Powerup",
+                                            "Powerup Setup Settings") );
 
     PARAM_PREFIX IntUserConfigParam        m_powerup_display
-        PARAM_DEFAULT(IntUserConfigParam(0, "display",
-            &m_powerup_setup_group, "display: 0 center, 1 right side, 2 hidden (see karts' held powerups)"));
+        PARAM_DEFAULT(IntUserConfigParam(1, "display",
+            &m_powerup_setup_group, "display: 0 hidden, 1 in the powerup indicator"));
     PARAM_PREFIX FloatUserConfigParam      m_powerup_size
-            PARAM_DEFAULT(  FloatUserConfigParam(64.0f, "powerup-icon-size",
+            PARAM_DEFAULT(  FloatUserConfigParam(48.0f, "powerup-icon-size",
             &m_powerup_setup_group, "Size of the powerup icon (scaled afterwards)") );
 
     // ---- Settings for spectator camera

@@ -41,11 +41,13 @@ using namespace irr;
 #include "guiengine/modaldialog.hpp"
 #include "guiengine/scalable_font.hpp"
 #include "io/file_manager.hpp"
+#include "items/powerup.hpp"
 #include "items/powerup_manager.hpp"
 #include "items/projectile_manager.hpp"
 #include "karts/abstract_kart.hpp"
 #include "karts/controller/controller.hpp"
 #include "karts/controller/spare_tire_ai.hpp"
+#include "karts/kart.hpp"
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
 #include "modes/capture_the_flag.hpp"
@@ -96,6 +98,9 @@ RaceGUI::RaceGUI()
     m_speed_meter_icon = irr_driver->getTexture(FileManager::GUI_ICON, "speedback.png");
     m_speed_bar_icon   = irr_driver->getTexture(FileManager::GUI_ICON, "speedfore.png");
     //createMarkerTexture();
+
+    // Load powerup box texture before rendering the first frame
+    m_powerup_box_icon = irr_driver->getTexture(FileManager::GUI_ICON, "powerup_box.png");
 
     // Load icon textures for later reuse
     m_red_team = irr_driver->getTexture(FileManager::GUI_ICON, "soccer_ball_red.png");
@@ -398,13 +403,15 @@ void RaceGUI::renderPlayerView(const Camera *camera, float dt)
     {
         if (m_multitouch_gui == NULL || m_multitouch_gui->isSpectatorMode())
         {
-            drawPowerupIcons(kart, viewport, scaling);
             drawSpeedEnergyRank(kart, viewport, scaling, dt);
         }
     }
 
     if (!m_is_tutorial)
+    {
         drawLap(kart, viewport, scaling);
+        drawRank(kart, viewport, scaling);
+    }
     FontDrawer::endBatching();
 #endif
 }   // renderPlayerView
@@ -466,9 +473,9 @@ void RaceGUI::drawGlobalTimer()
     }
 
     core::rect<s32> pos(irr_driver->getActualScreenSize().Width - dist_from_right,
-                        irr_driver->getActualScreenSize().Height*2/100,
+                        irr_driver->getActualScreenSize().Height * 0.02f,
                         irr_driver->getActualScreenSize().Width,
-                        irr_driver->getActualScreenSize().Height*6/100);
+                        irr_driver->getActualScreenSize().Height * 0.06f);
 
     // special case : when 3 players play, use available 4th space for such things
     if (RaceManager::get()->getIfEmptyScreenSpaceExists())
@@ -798,7 +805,7 @@ void RaceGUI::drawEnergyMeter(int x, int y, const AbstractKart *kart,
 {
 #ifndef SERVER_ONLY
     float min_ratio        = std::min(scaling.X, scaling.Y);
-    const int GAUGEWIDTH   = 94;//same inner radius as the inner speedometer circle
+    const int GAUGEWIDTH   = 127; //same inner radius as the inner speedometer circle
     int gauge_width        = (int)(GAUGEWIDTH*min_ratio);
     int gauge_height       = (int)(GAUGEWIDTH*min_ratio);
 
@@ -808,13 +815,12 @@ void RaceGUI::drawEnergyMeter(int x, int y, const AbstractKart *kart,
     else if (state > 1.0f) state = 1.0f;
 
     core::vector2df offset;
-    offset.X = (float)(x-gauge_width) - 9.5f*scaling.X;
-    offset.Y = (float)y-11.5f*scaling.Y;
-
+    offset.X = (float)(x-gauge_width) - 27.5f*scaling.X;
+    offset.Y = (float)y-10.0f*scaling.Y;
 
     // Background
     draw2DImage(m_gauge_empty, core::rect<s32>((int)offset.X,
-                                               (int)offset.Y-gauge_height,
+                                               (int)offset.Y - gauge_height,
                                                (int)offset.X + gauge_width,
                                                (int)offset.Y) /* dest rect */,
                 core::rect<s32>(core::position2d<s32>(0,0),
@@ -830,24 +836,24 @@ void RaceGUI::drawEnergyMeter(int x, int y, const AbstractKart *kart,
     const int vertices_count = 9;
 
     core::vector2df position[vertices_count];
-    position[0].X = 0.324f;//A
-    position[0].Y = 0.35f;//A
-    position[1].X = 0.01f;//B1 (margin for gauge goal)
-    position[1].Y = 0.88f;//B1
+    position[0].X = 0.500f;//A
+    position[0].Y = 0.420f;//A
+    position[1].X = 0.010f;//B1 (margin for gauge goal)
+    position[1].Y = 0.880f;//B1
     position[2].X = 0.029f;//B2
     position[2].Y = 0.918f;//B2
-    position[3].X = 0.307f;//C
-    position[3].Y = 0.99f;//C
-    position[4].X = 0.589f;//D
+    position[3].X = 0.527f;//C
+    position[3].Y = 0.990f;//C
+    position[4].X = 0.840f;//D
     position[4].Y = 0.932f;//D
-    position[5].X = 0.818f;//E
+    position[5].X = 0.948f;//E
     position[5].Y = 0.755f;//E
-    position[6].X = 0.945f;//F
+    position[6].X = 0.948f;//F
     position[6].Y = 0.497f;//F
     position[7].X = 0.948f;//G1
-    position[7].Y = 0.211f;//G1
-    position[8].X = 0.94f;//G2 (margin for gauge goal)
-    position[8].Y = 0.17f;//G2
+    position[7].Y = 0.311f;//G1
+    position[8].X = 0.948f;//G2 (margin for gauge goal)
+    position[8].Y = 0.217f;//G2
 
     // The states at which different polygons must be used.
 
@@ -903,19 +909,54 @@ void RaceGUI::drawEnergyMeter(int x, int y, const AbstractKart *kart,
 }   // drawEnergyMeter
 
 //-----------------------------------------------------------------------------
-/** Draws the rank of a player.
- *  \param kart The kart of the player.
- *  \param offset Offset of top left corner for this display (for splitscreen).
- *  \param min_ratio Scaling of the screen (for splitscreen).
- *  \param meter_width Width of the meter (inside which the rank is shown).
- *  \param meter_height Height of the meter (inside which the rank is shown).
- *  \param dt Time step size.
+/** A indicator that gets filled with the powerup earned.
+ *  \param x X position of the meter.
+ *  \param y Y position of the meter.
+ *  \param kart Kart to display the data for.
+ *  \param scaling Scaling applied (in case of split screen)
  */
-void RaceGUI::drawRank(const AbstractKart *kart,
-                      const core::vector2df &offset,
-                      float min_ratio, int meter_width,
-                      int meter_height, float dt)
+void RaceGUI::drawPowerupIndicator(int x, int y, const AbstractKart *kart,
+                                   const core::recti &viewport,
+                                   const core::vector2df &scaling)
 {
+    #ifndef SERVER_ONLY
+    float min_ratio        = std::min(scaling.X, scaling.Y);
+    const int GAUGEWIDTH   = 130; //same inner radius as the inner speedometer circle
+    int gauge_width        = (int)(GAUGEWIDTH*min_ratio);
+    int gauge_height       = (int)(GAUGEWIDTH*min_ratio);
+
+    core::vector2df offset;
+    offset.X = (float)(x-gauge_width) - 26.887*scaling.X;
+    offset.Y = (float)y-11.5f*scaling.Y;
+
+    // Background
+    draw2DImage(m_powerup_box_icon, core::rect<s32>((int)offset.X,
+                                                    (int)offset.Y - gauge_height,
+                                                    (int)offset.X + gauge_width,
+                                                    (int)offset.Y),
+                core::rect<s32>(core::position2d<s32>(0,0),
+                                m_powerup_box_icon->getSize()),
+                NULL, NULL , true);
+
+    //Powerup
+    if (m_multitouch_gui == NULL || m_multitouch_gui->isSpectatorMode())
+    {
+        drawPowerupIcons(kart, viewport, scaling);
+    }
+#endif
+}   // drawEnergyMeter
+
+//-----------------------------------------------------------------------------
+/** Draws the rank of a player.
+ *  \param kart The kart for which to show the data.
+ *  \param viewport The viewport to use.
+ *  \param scaling Which scaling to apply.
+ */
+void RaceGUI::drawRank(const AbstractKart* kart,
+                       const core::recti &viewport,
+                       const core::vector2df &scaling)
+{
+    #ifndef SERVER_ONLY
     // Draw rank
     World *world = World::getWorld();
     if (!world || !world->shouldDrawSpeedometerDigit())
@@ -928,25 +969,7 @@ void RaceGUI::drawRank(const AbstractKart *kart,
 
     int id = kart->getWorldKartId();
 
-    if (m_animation_states.find(id) == m_animation_states.end())
-    {
-        m_animation_duration[id] = 0.0f;
-        m_animation_states[id] = AS_NONE;
-        m_last_digit[id] = number;
-    }
-
-    if (m_animation_states[id] == AS_NONE)
-    {
-        if (m_last_digit[id] != number)
-        {
-            m_animation_duration[id] = 0.0f;
-            m_animation_states[id] = AS_SMALLER;
-        }
-    }
-    else
-    {
-        m_animation_duration[id] += dt;
-    }
+    int dist_from_right = m_timer_width * 3;
 
     float scale = 1.0f;
     int shown_number = number;
@@ -982,23 +1005,20 @@ void RaceGUI::drawRank(const AbstractKart *kart,
     }
 
     gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
-    
-    int font_height = font->getDimension(L"X").Height;
-    font->setScale((float)meter_height / font_height * 0.4f * scale);
     std::ostringstream oss;
-    oss << shown_number; // the current font has no . :(   << ".";
+    oss << "P" << shown_number;
 
-    core::recti pos;
-    pos.LowerRightCorner = core::vector2di(int(offset.X + 0.64f*meter_width),
-                                           int(offset.Y - 0.49f*meter_height));
-    pos.UpperLeftCorner = core::vector2di(int(offset.X + 0.64f*meter_width),
-                                          int(offset.Y - 0.49f*meter_height));
+    core::rect<s32> pos(irr_driver->getActualScreenSize().Width - dist_from_right,
+                        viewport.UpperLeftCorner.Y + 10,
+                        irr_driver->getActualScreenSize().Width,
+                        viewport.UpperLeftCorner.Y + 20);
 
     font->setBlackBorder(true);
     font->draw(oss.str().c_str(), pos, color, true, true);
     font->setBlackBorder(false);
     font->setScale(1.0f);
-}   // drawRank
+#endif
+} // drawRank
 
 //-----------------------------------------------------------------------------
 /** Draws the speedometer, the display of available nitro, and
@@ -1015,23 +1035,26 @@ void RaceGUI::drawSpeedEnergyRank(const AbstractKart* kart,
 {
 #ifndef SERVER_ONLY
     float min_ratio         = std::min(scaling.X, scaling.Y);
-    const int SPEEDWIDTH   = 128;
+    const int SPEEDWIDTH   = 130;
     int meter_width        = (int)(SPEEDWIDTH*min_ratio);
     int meter_height       = (int)(SPEEDWIDTH*min_ratio);
 
-    drawEnergyMeter(viewport.LowerRightCorner.X ,
-                    (int)(viewport.LowerRightCorner.Y),
-                    kart, viewport, scaling);
+    drawEnergyMeter      (viewport.LowerRightCorner.X ,
+                          (int)(viewport.LowerRightCorner.Y),
+                          kart, viewport, scaling);
+    drawPowerupIndicator (viewport.LowerRightCorner.X ,
+                          (int)(viewport.LowerRightCorner.Y),
+                          kart, viewport, scaling);
 
     // First draw the meter (i.e. the background )
     // -------------------------------------------------------------------------
     core::vector2df offset;
-    offset.X = (float)(viewport.LowerRightCorner.X-meter_width) - 24.0f*scaling.X;
-    offset.Y = viewport.LowerRightCorner.Y-10.0f*scaling.Y;
+    offset.X = (float)(viewport.LowerRightCorner.X-meter_width) - 26.887f*scaling.X;
+    offset.Y = viewport.LowerRightCorner.Y - 14.0f*scaling.Y;
 
     const core::rect<s32> meter_pos((int)offset.X,
-                                    (int)(offset.Y-meter_height),
-                                    (int)(offset.X+meter_width),
+                                    (int)(offset.Y - meter_height),
+                                    (int)(offset.X + meter_width),
                                     (int)offset.Y);
     const core::rect<s32> meter_texture_coords(core::position2d<s32>(0,0),
                                                m_speed_meter_icon->getSize());
@@ -1041,9 +1064,6 @@ void RaceGUI::drawSpeedEnergyRank(const AbstractKart* kart,
     // draw2DVertexPrimitiveList to render a simple rectangle
 
     const float speed =  kart->getSpeed();
-
-    drawRank(kart, offset, min_ratio, meter_width, meter_height, dt);
-
 
     if(speed <=0) return;  // Nothing to do if speed is negative.
 

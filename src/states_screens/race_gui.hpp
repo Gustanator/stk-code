@@ -101,6 +101,10 @@ private:
     /** Texture for the hit limit icon*/
     irr::video::ITexture* m_champion;
 
+    /** Texture for powerup indicator. */
+    irr::video::ITexture *m_powerup_box_icon;
+    irr::video::ITexture *m_powerup_icon;
+
     /** Texture for speedometer. */
     irr::video::ITexture *m_speed_meter_icon;
     irr::video::ITexture *m_speed_bar_icon;
@@ -122,16 +126,18 @@ private:
     void drawEnergyMeter       (int x, int y, const AbstractKart *kart,
                                 const core::recti &viewport,
                                 const core::vector2df &scaling);
+    void drawPowerupIndicator  (int x, int y, const AbstractKart *kart,
+                                const core::recti &viewport,
+                                const core::vector2df &scaling);
     void drawSpeedEnergyRank   (const AbstractKart* kart,
                                 const core::recti &viewport,
                                 const core::vector2df &scaling, float dt);
     void drawLap               (const AbstractKart* kart,
                                 const core::recti &viewport,
                                 const core::vector2df &scaling);
-    void drawRank              (const AbstractKart *kart,
-                                const core::vector2df &offset,
-                                float min_ratio, int meter_width,
-                                int meter_height, float dt);
+    void drawRank              (const AbstractKart* kart,
+                                const core::recti &viewport,
+                                const core::vector2df &scaling);
 
     /* Helper functions for drawing meters */
 
