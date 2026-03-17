@@ -390,44 +390,15 @@ void RaceGUIBase::drawPowerupIcons(const AbstractKart* kart,
         || kart->hasFinishedRace()) return;
 
     int n = kart->getPowerup()->getNum() ;
-    int many_powerups = 0;
-    if (n<1) return;    // shouldn't happen, but just in case
-    if (n>5)
-    {
-        many_powerups = n;
-        n = 1;
-    }
 
     float scale = (float)(std::min(scaling.X, scaling.Y));
 
     int nSize = (int)(UserConfigParams::m_powerup_size * scale);
 
-    int itemSpacing = (int)(scale * UserConfigParams::m_powerup_size / 2);
-
     int x1, y1;
 
-    // When there is not much height or set by user, move items on the side
-    if ((UserConfigParams::m_powerup_display == 1) || 
-        ((float) viewport.getWidth() / (float) viewport.getHeight() > 2.0f))
-    {
-        x1 = viewport.UpperLeftCorner.X  + 3*(viewport.getWidth()/4)
-           - ((n * itemSpacing)/2);
-    }
-    else
-    {
-        x1 = viewport.UpperLeftCorner.X  + (viewport.getWidth()/2)
-           - ((n * itemSpacing)/2);
-    }
-
-    // When the viewport is smaller in splitscreen, reduce the top margin
-    if ((RaceManager::get()->getNumLocalPlayers() == 2    &&
-        viewport.getWidth() > viewport.getHeight()) ||
-        RaceManager::get()->getNumLocalPlayers() >= 3       )
-        y1 = viewport.UpperLeftCorner.Y  + (int)(5 * scaling.Y);
-    else
-        y1 = viewport.UpperLeftCorner.Y  + (int)(20 * scaling.Y);
-
-    int x2 = 0;
+    x1 = viewport.LowerRightCorner.X - 115.0f * scale;
+    y1 = viewport.LowerRightCorner.Y - 103.0f * scale;
 
     assert(powerup != NULL);
     assert(powerup->getIcon() != NULL);
@@ -437,21 +408,9 @@ void RaceGUIBase::drawPowerupIcons(const AbstractKart* kart,
 
     for ( int i = 0 ; i < n ; i++ )
     {
-        x2 = (int)((x1+i*itemSpacing) - (itemSpacing / 2));
-        core::rect<s32> pos(x2, y1, x2+nSize, y1+nSize);
-        draw2DImage(t, pos, rect, NULL,
-                                                  NULL, true);
+        core::rect<s32> pos(x1, y1, x1+nSize, y1+nSize);
+        draw2DImage(t, pos, rect, NULL, NULL, true);
     }   // for i
-
-    if (many_powerups > 0)
-    {
-        gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
-        core::rect<s32> pos(x2+nSize, y1, x2+nSize+nSize, y1+nSize);
-        font->setScale(scale / (float)font->getDimension(L"X").Height * 64.0f);
-        font->draw(core::stringw(L"x")+StringUtils::toWString(many_powerups),
-            pos, video::SColor(255, 255, 255, 255));
-        font->setScale(1.0f);
-    }
 #endif
 }   // drawPowerupIcons
 
