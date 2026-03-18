@@ -24,7 +24,7 @@ COpenGLExtensionHandler::COpenGLExtensionHandler() :
 		MaxMultipleRenderTargets(1), MaxIndices(65535),
 		MaxTextureSize(1), MaxGeometryVerticesOut(0),
 		MaxTextureLODBias(0.f), Version(0), ShaderLanguageVersion(0),
-		OcclusionQuerySupport(false)
+		OcclusionQuerySupport(false), m_gl_extensions_cleared(false)
 #ifdef _IRR_OPENGL_USE_EXTPOINTER_
 	,pGlActiveTextureARB(0), pGlClientActiveTextureARB(0),
 	pGlGenProgramsARB(0), pGlGenProgramsNV(0),

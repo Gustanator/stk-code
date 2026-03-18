@@ -13,6 +13,7 @@
 #include "ge_vulkan_light_handler.hpp"
 #include "ge_vulkan_mesh_cache.hpp"
 #include "ge_vulkan_mesh_scene_node.hpp"
+#include "ge_vulkan_shadow_fbo.hpp"
 #include "ge_vulkan_skybox_renderer.hpp"
 #include "ge_vulkan_texture_descriptor.hpp"
 
@@ -171,9 +172,15 @@ void GEVulkanSceneManager::drawAllInternal()
         if (it == m_draw_calls.end())
             return;
 
-        it->second->prepare(cam);
+        std::unique_ptr<GEVulkanDrawCall>& dc = it->second;
+        dc->prepare(cam);
+        GEVulkanShadowFBO* sfbo = dc->getShadowFBO();
+        if (sfbo)
+            sfbo->prepare(cam, dc->getLightHandler());
         OnRegisterSceneNode();
-        it->second->generate(static_cast<GEVulkanDriver*>(getVideoDriver()));
+        dc->generate(static_cast<GEVulkanDriver*>(getVideoDriver()));
+        if (sfbo)
+            sfbo->generate();
     }
 }   // drawAllInternal
 
@@ -192,7 +199,7 @@ void GEVulkanSceneManager::drawAll(irr::u32 flags)
     {
         cf.getRed(), cf.getGreen(), cf.getBlue(), cf.getAlpha()
     };
-    clear_values[1].depthStencil = {1.0f, 0};
+    clear_values[1].depthStencil = {0.0f, 0};
     unsigned count = rtt->getZeroClearCountForPass(GVDFP_HDR);
     VkClearValue zero;
     zero.color = {0, 0, 0, 0};
@@ -207,7 +214,13 @@ void GEVulkanSceneManager::drawAll(irr::u32 flags)
     cam->setViewPort(
         core::recti(0, 0, rtt->getSize().Width, rtt->getSize().Height));
     cam->render();
-    dc->uploadDynamicData(vk, cam, cmd);
+    dc->uploadDynamicData(vk, cam->getUBOData(), cmd);
+    GEVulkanShadowFBO* sfbo = dc->getShadowFBO();
+    if (sfbo)
+    {
+        sfbo->uploadDynamicData(cmd);
+        sfbo->render(cmd);
+    }
 
     VkRenderPassBeginInfo render_pass_info = {};
     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -241,15 +254,16 @@ irr::u32 GEVulkanSceneManager::registerNodeForRendering(
     GEVulkanCameraSceneNode* cam = static_cast<
         GEVulkanCameraSceneNode*>(getActiveCamera());
 
+    std::unique_ptr<GEVulkanDrawCall>& dc = m_draw_calls.at(cam);
     if (node->getType() == irr::scene::ESNT_SKY_BOX)
     {
-        m_draw_calls.at(cam)->addSkyBox(node);
+        dc->addSkyBox(node);
         return 1;
     }
 
     if (node->getType() == irr::scene::ESNT_LIGHT)
     {
-        m_draw_calls.at(cam)->addLightNode(
+        dc->addLightNode(
             static_cast<irr::scene::ILightSceneNode*>(node));
         return 1;
     }
@@ -257,7 +271,7 @@ irr::u32 GEVulkanSceneManager::registerNodeForRendering(
     if (node->getType() == irr::scene::ESNT_BILLBOARD ||
         node->getType() == irr::scene::ESNT_PARTICLE_SYSTEM)
     {
-        m_draw_calls.at(cam)->addBillboardNode(node, node->getType());
+        dc->addBillboardNode(node, node->getType());
         return 1;
     }
 
@@ -267,7 +281,10 @@ irr::u32 GEVulkanSceneManager::registerNodeForRendering(
         pass != irr::scene::ESNRP_SOLID))
         return 0;
 
-    m_draw_calls.at(cam)->addNode(node);
+    dc->addNode(node);
+    GEVulkanShadowFBO* sfbo = dc->getShadowFBO();
+    if (sfbo)
+        sfbo->addNode(node);
     return 1;
 }   // registerNodeForRendering
 
@@ -348,5 +365,34 @@ void GEVulkanSceneManager::removeDrawCall(GEVulkanCameraSceneNode* cam)
     gevk->addDrawCallToCache(dc);
     m_draw_calls.erase(cam);
 }   // removeDrawCall
+
+// ----------------------------------------------------------------------------
+irr::scene::ILightSceneNode* GEVulkanSceneManager::getSunNode(
+                                                  irr::scene::ISceneNode* node)
+{
+    if (node->isVisible())
+    {
+        switch (node->getType())
+        {
+        case irr::scene::ESNT_LIGHT:
+        {
+            auto l = static_cast<irr::scene::ILightSceneNode*>(node);
+            if (l->getLightType() == irr::video::ELT_DIRECTIONAL)
+                return l;
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    irr::scene::ILightSceneNode* sun = NULL;
+    for (unsigned i = 0; i < node->getChildren().size(); i++)
+    {
+        sun = getSunNode(node->getChildren()[i]);
+        if (sun)
+            break;
+    }
+    return sun;
+}   // getSunNode
 
 }

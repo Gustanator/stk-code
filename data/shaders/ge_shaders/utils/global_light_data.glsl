@@ -6,8 +6,12 @@ struct LightData
 };
 
 const int MAX_LIGHT = 32;
+const int OMNI_FACES_PER_LIGHT = 6;
+
 layout(std140, set = 1, binding = 3) uniform GlobalLightBuffer
 {
+    mat4  m_shadow_projection_view_matrix[3 + MAX_LIGHT * OMNI_FACES_PER_LIGHT];
+    mat4  m_shadow_view_matrix;
     vec3  m_ambient_color;
     float m_sun_scatter;
     vec3  m_sun_color;

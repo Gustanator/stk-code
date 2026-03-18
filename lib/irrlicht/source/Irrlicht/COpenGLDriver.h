@@ -37,6 +37,7 @@ namespace video
 	{
 		friend class COpenGLTexture;
 	public:
+		void cleanUp();
 
 		virtual void enableScissorTest(const core::rect<s32>& r);
 		virtual void disableScissorTest();

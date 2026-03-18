@@ -14,16 +14,23 @@ namespace GE
 {
 class GESPMBuffer;
 class GEVulkanCameraSceneNode;
+class GEVulkanShadowFBO;
 
 class GECullingTool
 {
 private:
+    bool m_skip_near_plane;
+
     irr::core::quaternion m_frustum[6];
 
     irr::core::aabbox3df m_cam_bbox;
 public:
     // ------------------------------------------------------------------------
+    GECullingTool() : m_skip_near_plane(false)                               {}
+    // ------------------------------------------------------------------------
     void init(GEVulkanCameraSceneNode* cam);
+    // ------------------------------------------------------------------------
+    void initShadow(const GEVulkanShadowFBO* sfbo, unsigned layer);
     // ------------------------------------------------------------------------
     bool isCulled(irr::core::aabbox3df& bb);
     // ------------------------------------------------------------------------

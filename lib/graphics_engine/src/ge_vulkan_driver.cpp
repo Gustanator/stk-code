@@ -19,6 +19,7 @@
 #include "ge_vulkan_mesh_cache.hpp"
 #include "ge_vulkan_scene_manager.hpp"
 #include "ge_vulkan_shader_manager.hpp"
+#include "ge_vulkan_shadow_fbo.hpp"
 #include "ge_vulkan_skybox_renderer.hpp"
 #include "ge_vulkan_texture_descriptor.hpp"
 
@@ -645,6 +646,22 @@ GEVulkanDriver::GEVulkanDriver(const SIrrlichtCreationParameters& params,
         GECompressorBPTCBC7::init();
         GEMaterialManager::init();
         GEVulkanFeatures::printStats();
+        VkFormatProperties format_props = {};
+        vkGetPhysicalDeviceFormatProperties(m_physical_device,
+            VK_FORMAT_D32_SFLOAT, &format_props);
+        if ((format_props.optimalTilingFeatures &
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) !=
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+            os::Printer::log("Vulkan reverse-z",
+                "broken due to the absence of D32_SFLOAT support");
+        }
+        if (m_features.depthClamp == VK_FALSE ||
+            m_features.depthBiasClamp == VK_FALSE)
+        {
+            os::Printer::log("Vulkan shadow",
+                "broken due to missing depth clamp");
+        }
     }
     catch (std::exception& e)
     {
@@ -1073,6 +1090,10 @@ void GEVulkanDriver::createDevice()
 
     if (m_features.samplerAnisotropy == VK_TRUE)
         device_features.samplerAnisotropy = VK_TRUE;
+    if (m_features.depthClamp == VK_TRUE)
+        device_features.depthClamp = VK_TRUE;
+    if (m_features.depthBiasClamp == VK_TRUE)
+        device_features.depthBiasClamp = VK_TRUE;
 
     VkDeviceCreateInfo create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1203,7 +1224,9 @@ void GEVulkanDriver::createSwapChain()
         // Workaround for https://gitlab.freedesktop.org/mesa/mesa/-/issues/5516
         bool ignore_mailbox_mode = false;
 #ifdef __LINUX__
-        ignore_mailbox_mode =  true;
+        const char* video_driver = SDL_GetCurrentVideoDriver();
+        if (video_driver && strcmp(video_driver, "x11") == 0)
+            ignore_mailbox_mode = true;
 #endif
         if (!ignore_mailbox_mode)
         {
@@ -1561,13 +1584,23 @@ void GEVulkanDriver::createSamplers()
     sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_info.compareEnable = VK_TRUE;
-    sampler_info.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    sampler_info.compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
     result = vkCreateSampler(m_vk->device, &sampler_info, NULL,
         &sampler);
 
     if (result != VK_SUCCESS)
         throw std::runtime_error("vkCreateSampler failed for GVS_SHADOW");
     m_vk->samplers[GVS_SHADOW] = sampler;
+
+    sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    sampler_info.compareOp = VK_COMPARE_OP_LESS;
+    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+    result = vkCreateSampler(m_vk->device, &sampler_info, NULL,
+        &sampler);
+
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("vkCreateSampler failed for GVS_SHADOW_MAP");
+    m_vk->samplers[GVS_SHADOW_MAP] = sampler;
 }   // createSamplers
 
 // ----------------------------------------------------------------------------
@@ -2447,7 +2480,7 @@ void GEVulkanDriver::buildCommandBuffers()
     {
         cf.getRed(), cf.getGreen(), cf.getBlue(), cf.getAlpha()
     };
-    clear_values[1].depthStencil = {1.0f, 0};
+    clear_values[1].depthStencil = {0.0f, 0};
     if (m_rtt_texture)
     {
         unsigned count = m_rtt_texture->getZeroClearCountForPass(GVDFP_HDR);
@@ -2499,18 +2532,27 @@ void GEVulkanDriver::buildCommandBuffers()
         return;
 
     GEVulkan2dRenderer::uploadTrisBuffers();
-    for (auto& p : static_cast<GEVulkanSceneManager*>(
-        m_irrlicht_device->getSceneManager())->getDrawCalls())
+    auto& dcp = static_cast<GEVulkanSceneManager*>(
+        m_irrlicht_device->getSceneManager())->getDrawCalls();
+    for (auto& p : dcp)
     {
-        p.second->uploadDynamicData(this, p.first);
+        p.second->uploadDynamicData(this, p.first->getUBOData());
+        GEVulkanShadowFBO* sfbo = p.second->getShadowFBO();
+        if (sfbo)
+            sfbo->uploadDynamicData(getCurrentCommandBuffer());
+    }
+    for (auto& p : dcp)
+    {
+        GEVulkanShadowFBO* sfbo = p.second->getShadowFBO();
+        if (sfbo)
+            sfbo->render(getCurrentCommandBuffer());
     }
 
     vkCmdBeginRenderPass(getCurrentCommandBuffer(), &render_pass_info,
         VK_SUBPASS_CONTENTS_INLINE);
 
     std::vector<std::pair<GEVulkanDrawCall*, GEVulkanCameraSceneNode*> > dcs;
-    for (auto& p : static_cast<GEVulkanSceneManager*>(
-        m_irrlicht_device->getSceneManager())->getDrawCalls())
+    for (auto& p : dcp)
     {
         dcs.emplace_back(p.second.get(), p.first);
     }
@@ -2565,7 +2607,7 @@ void GEVulkanDriver::renderDrawCalls(
             else
                 rebind_base_vertex = true;
             q.first->prepareRendering(this);
-            q.first->prepareViewport(this, q.second, cmd);
+            q.first->prepareViewport(this, q.second->getViewPort(), cmd);
             if (q.first->doDepthOnlyRenderingFirst())
             {
                 q.first->renderPipeline(this, cmd, GVPT_DEPTH,
@@ -2578,7 +2620,7 @@ void GEVulkanDriver::renderDrawCalls(
         for (auto& q : p)
         {
             if (multiple_viewports)
-                q.first->prepareViewport(this, q.second, cmd);
+                q.first->prepareViewport(this, q.second->getViewPort(), cmd);
             q.first->renderDeferredLighting(this, cmd);
             q.first->renderSkyBox(this, cmd);
         }
@@ -2586,7 +2628,7 @@ void GEVulkanDriver::renderDrawCalls(
         for (auto& q : p)
         {
             if (multiple_viewports)
-                q.first->prepareViewport(this, q.second, cmd);
+                q.first->prepareViewport(this, q.second->getViewPort(), cmd);
             q.first->renderDeferredConvertColor(this, cmd);
             if (bind_mesh_textures)
                 q.first->bindAllMaterials(cmd);
@@ -2629,7 +2671,7 @@ void GEVulkanDriver::renderDrawCalls(
                 for (auto& q : p)
                 {
                     if (multiple_viewports)
-                        q.first->prepareViewport(this, q.second, cmd);
+                        q.first->prepareViewport(this, q.second->getViewPort(), cmd);
                     if (bind_mesh_textures)
                         q.first->bindAllMaterials(cmd);
                     else
@@ -2659,7 +2701,7 @@ void GEVulkanDriver::renderDrawCalls(
             for (auto& q : p)
             {
                 if (multiple_viewports)
-                    q.first->prepareViewport(this, q.second, cmd);
+                    q.first->prepareViewport(this, q.second->getViewPort(), cmd);
                 q.first->renderDisplaceColor(this, cmd, has_displace);
                 if (has_displace)
                 {
@@ -2682,7 +2724,7 @@ void GEVulkanDriver::renderDrawCalls(
             else
                 rebind_base_vertex = true;
             q.first->prepareRendering(this);
-            q.first->prepareViewport(this, q.second, cmd);
+            q.first->prepareViewport(this, q.second->getViewPort(), cmd);
             if (q.first->doDepthOnlyRenderingFirst())
             {
                 q.first->renderPipeline(this, cmd, GVPT_DEPTH,

@@ -540,12 +540,10 @@ RenderTarget* Graph::makeMiniMap(const core::dimension2du &dimension,
     }
 
     float range = (dx>dz) ? dx : dz;
-
-    core::matrix4 projection;
-    projection.buildProjectionMatrixOrthoLH
-        (range /* width */, range /* height */, -1,
-        bb_max.getY()-bb_min.getY()+1);
-    camera->setProjectionMatrix(projection, true);
+    camera->setIsOrthogonal(true);
+    camera->setFOV(range);
+    camera->setNearValue(-1);
+    camera->setFarValue(bb_max.getY()-bb_min.getY()+1);
 
     irr_driver->suppressSkyBox();
     irr_driver->clearLights();

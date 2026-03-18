@@ -1093,6 +1093,7 @@ class COpenGLExtensionHandler
 
 	void clearGLExtensions()
 	{
+		m_gl_extensions_cleared = true;
 	#if defined(_IRR_OPENGL_USE_EXTPOINTER_)
 		pGlActiveTextureARB = 0;
 		pGlClientActiveTextureARB = 0;
@@ -1234,6 +1235,7 @@ class COpenGLExtensionHandler
 	}
 
 	protected:
+		bool m_gl_extensions_cleared;
 	#if defined(_IRR_OPENGL_USE_EXTPOINTER_)
 		PFNGLACTIVETEXTUREARBPROC pGlActiveTextureARB;
 		PFNGLCLIENTACTIVETEXTUREARBPROC	pGlClientActiveTextureARB;

@@ -2,8 +2,10 @@
 
 #include "ge_main.hpp"
 #include "ge_occlusion_culling.hpp"
+#include "ge_vulkan_camera_scene_node.hpp"
 #include "ge_vulkan_driver.hpp"
 #include "ge_vulkan_fbo_texture.hpp"
+#include "ge_vulkan_shadow_fbo.hpp"
 #include "ge_vulkan_skybox_renderer.hpp"
 
 #include "ILightSceneNode.h"
@@ -139,5 +141,16 @@ void GEVulkanLightHandler::addLightNode(irr::scene::ILightSceneNode* node)
         m_lights.push_back(gl);
     }
 }   // addLightNode
+
+// ----------------------------------------------------------------------------
+void GEVulkanLightHandler::setShadowMatrices(GEVulkanCameraUBO* ubo,
+                                             unsigned layer)
+{
+    GEVulkanShadowCameraCascade cc = (GEVulkanShadowCameraCascade)layer;
+    if (cc == GVSCC_NEAR)
+        m_buffer.m_shadow_view_matrix = ubo->m_view_matrix;
+    m_buffer.m_shadow_projection_view_matrix[layer] =
+        ubo->m_projection_view_matrix;
+}   // setShadowMatrices
 
 }

@@ -198,6 +198,16 @@ core::matrix4 ShadowMatrices::getTightestFitOrthoProj(const core::matrix4 &trans
 void ShadowMatrices::computeMatrixesAndCameras(scene::ICameraSceneNode *const camnode,
                                                unsigned int width, unsigned int height)
 {
+    // SuperTuxKart uses a [0, 1] clip space projection matrix directly in OpenGL.
+    // Ideally, we would apply an inverse clip-space conversion matrix here to
+    // properly transform coordinates, but this causes excessive clipping artifacts
+    // near the near plane. Instead, we use a deliberately "broken" matrix that
+    // trades mathematical correctness for practical visual results with less
+    // near-plane clipping.
+    //irr::core::matrix4 clip;
+    //clip[10] = 2.0f;   // Depth scale for [0, 1] -> [-1, 1] conversion
+    //clip[14] = -1.0f;  // Depth bias for [0, 1] -> [-1, 1] conversion
+
     camnode->render();
     irr_driver->setProjMatrix(irr_driver->getVideoDriver()
                               ->getTransform(video::ETS_PROJECTION));

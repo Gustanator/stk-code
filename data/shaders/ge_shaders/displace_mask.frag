@@ -78,8 +78,8 @@ bool crossedCellBoundary(ivec2 oldCellIx, ivec2 newCellIx)
     return any(notEqual(oldCellIx, newCellIx));
 }
 
-// Minimum depth of the current cell in the current HiZ level.
-float getMinDepthPlane(ivec2 cellIx, int level)
+// Reverse Z: HiZ stores MAX depth (closest to camera = highest value)
+float getMaxDepthPlane(ivec2 cellIx, int level)
 {
     return texelFetch(u_hiz_depth, cellIx, level).x;
 }
@@ -135,8 +135,8 @@ bool traceHiZ(vec3 p, vec3 v, out vec2 hitPointSS)
     level = 0;
 #endif
     uint iterations = 0;
-    bool isBackwardRay = v.z < 0;
-    float rayDir = isBackwardRay ? -1.0 : 1.0;
+    bool isBackwardRay = v.z > 0;
+    float rayDir = isBackwardRay ? 1.0 : -1.0;
 
     // Cross to next cell s.t. we don't get a self-intersection immediately.
     ivec2 startCellCount = getCellCount(level);
@@ -150,20 +150,20 @@ bool traceHiZ(vec3 p, vec3 v, out vec2 hitPointSS)
         ivec2 cellCount = getCellCount(level);
         ivec2 oldCellIx = getCell(ray.xy, cellCount);
 
-        // Get the minimum depth plane in which the current ray resides.
-        float cellMinZ = getMinDepthPlane(oldCellIx, level);
+        // Get the maximum depth plane in which the current ray resides.
+        float cellMaxZ = getMaxDepthPlane(oldCellIx, level);
 
-        // Intersect only if ray depth is below the minimum depth plane.
+        // Intersect only if ray depth is above the maximum depth plane.
         vec3 tempRay;
-        if (cellMinZ > ray.z && !isBackwardRay)
-            tempRay = intersectDepthPlane(o, d, (cellMinZ - minZ) / deltaZ);
+        if (cellMaxZ < ray.z && !isBackwardRay)
+            tempRay = intersectDepthPlane(o, d, (cellMaxZ - minZ) / deltaZ);
         else
             tempRay = ray;
 
         ivec2 newCellIx = getCell(tempRay.xy, cellCount);
-        float thickness = level == 0 ? (ray.z - cellMinZ) : 0;
+        float thickness = level == 0 ? abs(ray.z - cellMaxZ) : 0;
 
-        bool crossed = (isBackwardRay && (cellMinZ > ray.z))
+        bool crossed = (isBackwardRay && (cellMaxZ < ray.z))
                     || (thickness > MAX_THICKNESS) || crossedCellBoundary(oldCellIx, newCellIx);
 
         if (crossed)

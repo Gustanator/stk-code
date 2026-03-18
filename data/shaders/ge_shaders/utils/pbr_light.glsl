@@ -45,7 +45,8 @@ vec3 PBRSunAmbientEmitLight(
     vec3 ambient_color,
     float perceptual_roughness,
     float metallic,
-    float emissive)
+    float emissive,
+    float shadow)
 {
     // Copied from PBRLight to use F_ab and F90 again
     float NdotV = max(dot(normal, eyedir), 0.0001);
@@ -73,7 +74,7 @@ vec3 PBRSunAmbientEmitLight(
     vec3 F = fresnel(F0, F90, LdotH);
     vec3 specular = D * V * F * (1.0 + F0 * (1.0 / F_ab.x - 1.0));
 
-    vec3 sunlight = NdotL * (diffuse + specular);
+    vec3 sunlight = NdotL * (diffuse + specular) * shadow;
 
     vec3 diffuse_ambient = envBRDFApprox(diffuse_color, F_AB(1.0, NdotV));
 
@@ -100,9 +101,83 @@ vec3 PBRSunAmbientEmitLight(
           + (diffuse_ambient + specular_ambient) * ambient_color;
 }
 
+float getShadowPCF(sampler2DArrayShadow map, vec2 shadowtexcoord, int layer, float depth)
+{
+    // Castaño, 2013, "Shadow Mapping Summary Part 1"
+    float shadow_size = float(u_shadow_size);
+    vec2 uv = shadowtexcoord * shadow_size + 0.5;
+    vec2 base = (floor(uv) - 0.5) / shadow_size;
+    vec2 st = fract(uv);
+
+    vec2 uw = vec2(3.0 - 2.0 * st.x, 1.0 + 2.0 * st.x);
+    vec2 vw = vec2(3.0 - 2.0 * st.y, 1.0 + 2.0 * st.y);
+
+    vec2 u = vec2((2.0 - st.x) / uw.x - 1.0, st.x / uw.y + 1.0) / shadow_size;
+    vec2 v = vec2((2.0 - st.y) / vw.x - 1.0, st.y / vw.y + 1.0) / shadow_size;
+
+    float sum = 0.0;
+    sum += uw.x * vw.x * texture(map, vec4(base + vec2(u.x, v.x), float(layer), depth));
+    sum += uw.y * vw.x * texture(map, vec4(base + vec2(u.y, v.x), float(layer), depth));
+    sum += uw.x * vw.y * texture(map, vec4(base + vec2(u.x, v.y), float(layer), depth));
+    sum += uw.y * vw.y * texture(map, vec4(base + vec2(u.y, v.y), float(layer), depth));
+    return sum * (1.0 / 16.0);
+}
+
+int getFaceIndex(vec3 d)
+{
+    vec3 a = abs(d);
+
+    float isX = step(a.y, a.x) * step(a.z, a.x);
+    float isY = (1.0 - isX) * step(a.z, a.y);
+    float isZ = 1.0 - isX - isY;
+
+    float sx = step(0.0, d.x);
+    float sy = step(0.0, d.y);
+    float sz = step(0.0, d.z);
+
+    int face =
+          int(isX) * (1 - int(sx))
+        + int(isX) * int(sx) * 0
+        + int(isY) * (3 - int(sy))
+        + int(isZ) * (5 - int(sz));
+
+    return face;
+}
+
+// ---------------------------------------------------------------------------
+// sampleOmniShadow
+//
+// Samples the tetrahedral shadow map for a point light.
+// ---------------------------------------------------------------------------
+float sampleOmniShadow(int light_id, vec3 light_pos, vec3 world_pos)
+{
+    vec3 L    = world_pos - light_pos;
+    int face  = getFaceIndex(L);
+    int layer = light_id * 6 + face;
+    if (u_shadow_type == GST_COMBINED)
+        layer += 3;
+
+    mat4 pv   = u_global_light.m_shadow_projection_view_matrix[layer];
+
+    vec4 clip = pv * vec4(world_pos, 1.0);
+    vec3 ndc  = clip.xyz / clip.w;
+
+    // XY: standard NDC → [0,1] UV.
+    // Z:  the clip matrix on the CPU already mapped Z to [0,1],
+    //     so ndc.z is already the depth value to compare against.
+    vec2  uv    = ndc.xy * 0.5 + 0.5;
+    float depth = ndc.z;
+
+    if (uv.x < 0.0 || uv.x > 1.0 ||
+        uv.y < 0.0 || uv.y > 1.0)
+        return 1.0;
+
+    return getShadowPCF(u_shadow_map, uv, layer, depth);
+}
+
 vec3 accumulateLights(int light_count, vec3 diffuse_color, vec3 normal,
                       vec3 xpos, vec3 eyedir, float perceptual_roughness,
-                      float metallic)
+                      float metallic, vec3 world_position)
 {
     vec3 accumulated_color = vec3(0.0);
     for (int i = 0; i < light_count; i++)
@@ -137,6 +212,13 @@ vec3 accumulateLights(int light_count, vec3 diffuse_color, vec3 normal,
         }
         vec3 diffuse_specular = PBRLight(normal, eyedir, L, diffuse_color,
             perceptual_roughness, metallic);
+        if ((u_shadow_type & GST_POINTLIGHT) != 0 &&
+            u_shadow_size > 0 && i < u_max_omni_lights)
+        {
+            float shadow = sampleOmniShadow(i,
+                u_global_light.m_lights[i].m_position_radius.xyz, world_position);
+            diffuse_specular *= shadow;
+        }
         float attenuation = 20. / (1. + distance_sq);
         float radius = u_global_light.m_lights[i].m_position_radius.w;
         attenuation *= (radius - distance) / radius;
@@ -150,7 +232,7 @@ vec3 accumulateLights(int light_count, vec3 diffuse_color, vec3 normal,
 
 // Copied because reusing in a loop will be slower
 vec3 calculateLight(int i, vec3 diffuse_color, vec3 normal, vec3 xpos,
-                    vec3 eyedir, float perceptual_roughness, float metallic)
+                    vec3 eyedir, float perceptual_roughness, float metallic, vec3 world_position)
 {
     vec3 light_to_frag = (u_camera.m_view_matrix *
         vec4(u_global_light.m_lights[i].m_position_radius.xyz,
@@ -179,6 +261,13 @@ vec3 calculateLight(int i, vec3 diffuse_color, vec3 normal, vec3 xpos,
     }
     vec3 diffuse_specular = PBRLight(normal, eyedir, L, diffuse_color,
         perceptual_roughness, metallic);
+    if ((u_shadow_type & GST_POINTLIGHT) != 0 &&
+        u_shadow_size > 0 && i < u_max_omni_lights)
+    {
+        float shadow = sampleOmniShadow(i,
+            u_global_light.m_lights[i].m_position_radius.xyz, world_position);
+        diffuse_specular *= shadow;
+    }
     float attenuation = 20. / (1. + distance_sq);
     float radius = u_global_light.m_lights[i].m_position_radius.w;
     attenuation *= (radius - distance) / radius;
@@ -186,4 +275,40 @@ vec3 calculateLight(int i, vec3 diffuse_color, vec3 normal, vec3 xpos,
     vec3 light_color =
         u_global_light.m_lights[i].m_color_inverse_square_range.xyz;
     return light_color * attenuation * diffuse_specular;
+}
+
+float getShadowFactor(sampler2DArrayShadow map, vec3 world_position, float view_depth, float NdotL, vec3 normal, vec3 lightdir)
+{
+    float end_factor = smoothstep(130., 150., view_depth);
+    if (view_depth >= 150. || NdotL <= 0.001)
+    {
+        return end_factor;
+    }
+
+    float shadow = 1.0;
+    float factor = smoothstep(9.0, 10.0, view_depth) + smoothstep(40.0, 45.0, view_depth);
+    int level = int(factor);
+
+    vec2 base_normal_bias = (u_global_light.m_shadow_view_matrix * vec4(normal, 0.)).xy;
+    base_normal_bias *= (1.0 - max(0.0, dot(-normal, lightdir))) / float(u_shadow_size);
+
+    vec4 light_view_position = u_global_light.m_shadow_projection_view_matrix[level] * vec4(world_position, 1.0);
+    light_view_position.xyz /= light_view_position.w;
+    light_view_position.xy = light_view_position.xy * 0.5 + 0.5 + base_normal_bias;
+
+    shadow = mix(getShadowPCF(map, light_view_position.xy, level, light_view_position.z), 1.0, end_factor);
+
+    if (factor == float(level))
+    {
+        return shadow;
+    }
+
+    // Blend with next cascade by factor
+    light_view_position = u_global_light.m_shadow_projection_view_matrix[level + 1] * vec4(world_position, 1.0);
+    light_view_position.xyz /= light_view_position.w;
+    light_view_position.xy = light_view_position.xy * 0.5 + 0.5 + base_normal_bias;
+
+    shadow = mix(shadow, getShadowPCF(map, light_view_position.xy, level + 1, light_view_position.z), factor - float(level));
+
+    return shadow;
 }

@@ -52,8 +52,9 @@ void main()
         u_push_constants.m_billboard_rotation,
         vec3(pos_radius.w), g_vertices[gl_VertexIndex]);
     vec4 pv = u_camera.m_projection_view_matrix * world_pos;
-    if (pv.z < 0.0)
-        gl_Position = vec4(pv.xy, 0.0, 1.0);
+    vec3 ndc = pv.xyz / pv.w;
+    if (ndc.z > 1.0)
+        gl_Position = vec4(pv.xy, pv.w, pv.w);
     else
         gl_Position = pv;
 }

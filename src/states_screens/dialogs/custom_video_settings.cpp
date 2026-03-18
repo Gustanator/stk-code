@@ -86,14 +86,16 @@ void CustomVideoSettingsDialog::beforeAddingWidgets()
     filtering->addLabel(_C("Image quality", "High"));
     filtering->setValue(GraphicalPresets::getImageQuality());
 
+    bool vk = GE::getDriver()->getDriverType() == video::EDT_VULKAN;
     SpinnerWidget* shadows = getWidget<SpinnerWidget>("shadows");
-    shadows->addLabel(_C("Shadows", "Disabled"));   // 0
-    shadows->addLabel(_C("Shadows", "Low"));        // 1
-    shadows->addLabel(_C("Shadows", "Medium"));     // 2
-    shadows->addLabel(_C("Shadows", "High"));       // 3
-    shadows->addLabel(_C("Shadows", "Very high"));  // 4
+    shadows->addLabel(_("Disabled"));   // 0
+    shadows->addLabel(_("Low"));        // 1
+    shadows->addLabel(_("Medium"));     // 2
+    shadows->addLabel(_("High"));       // 3
+    if (!vk)
+        shadows->addLabel(_("Very High"));  // 4
     shadows->setValue(UserConfigParams::m_shadows_resolution == 2048 ? 
-                      (UserConfigParams::m_pcss ? 4 : 3) :
+                      (UserConfigParams::m_pcss && !vk ? 4 : 3) :
                       UserConfigParams::m_shadows_resolution == 1024 ? 2 :
                       UserConfigParams::m_shadows_resolution ==  512 ? 1 : 0);
 
@@ -107,6 +109,8 @@ void CustomVideoSettingsDialog::beforeAddingWidgets()
     getWidget<CheckBoxWidget>("ssr")->setState(UserConfigParams::m_ssr);
     getWidget<CheckBoxWidget>("bloom")->setState(UserConfigParams::m_bloom);
     getWidget<CheckBoxWidget>("lightscattering")->setState(UserConfigParams::m_light_scatter);
+    getWidget<CheckBoxWidget>("pointlight_shadows")->setState(UserConfigParams::m_pointlight_shadows);
+
     if (CVS->isEXTTextureCompressionS3TCUsable())
     {
         getWidget<CheckBoxWidget>("texture_compression")->setState(UserConfigParams::m_texture_compression);
@@ -153,6 +157,16 @@ void CustomVideoSettingsDialog::beforeAddingWidgets()
 
 // -----------------------------------------------------------------------------
 
+void CustomVideoSettingsDialog::init()
+{
+    bool vk = GE::getDriver()->getDriverType() == video::EDT_VULKAN;
+    SpinnerWidget* shadows = getWidget<SpinnerWidget>("shadows");
+    if (vk)
+        shadows->setMax(3);
+} // init
+
+// -----------------------------------------------------------------------------
+
 GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::string& eventSource)
 {
 #ifndef SERVER_ONLY
@@ -177,6 +191,8 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
             bool advanced_pipeline = getWidget<CheckBoxWidget>("dynamiclight")->getState();
             bool pbr_changed = false;
             bool ibl_changed = false;
+            unsigned prev_shadow_size = GE::getGEConfig()->m_shadow_size;
+            unsigned prev_shadow_type = GE::getGEConfig()->m_shadow_type;
             if (UserConfigParams::m_dynamic_lights != advanced_pipeline)
             {
                 pbr_changed = true;
@@ -198,10 +214,17 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
                     getWidget<SpinnerWidget>("shadows")->getValue() >= 3 ? 2048 : 0;
                 UserConfigParams::m_pcss = 
                     getWidget<SpinnerWidget>("shadows")->getValue() == 4 ? true : false;
+                GE::getGEConfig()->m_shadow_size = UserConfigParams::m_shadows_resolution;
+                UserConfigParams::m_pointlight_shadows =
+                    getWidget<CheckBoxWidget>("pointlight_shadows")->getState();
+                GE::getGEConfig()->m_shadow_type =
+                    UserConfigParams::m_pointlight_shadows ? GE::GST_COMBINED : GE::GST_SUN;
             }
             else
             {
                 UserConfigParams::m_shadows_resolution = 0;
+                UserConfigParams::m_pointlight_shadows = false;
+                GE::getGEConfig()->m_shadow_size = 0;
             }
 
             UserConfigParams::m_mlaa =
@@ -267,7 +290,9 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
             if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
             {
                 bool need_recreate_swapchain = GE::getGEConfig()->m_screen_space_reflection_type != prev_gssrt;
-                if (need_recreate_swapchain || pbr_changed || ibl_changed)
+                if (need_recreate_swapchain || pbr_changed || ibl_changed ||
+                    prev_shadow_size != GE::getGEConfig()->m_shadow_size ||
+                    prev_shadow_type != GE::getGEConfig()->m_shadow_type)
                     GE::getVKDriver()->updateDriver(need_recreate_swapchain, pbr_changed, ibl_changed);
             }
             // sameRestart will have the same effect
@@ -288,7 +313,7 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
             return GUIEngine::EVENT_BLOCK;
         }
     }
-    else if (eventSource == "dynamiclight")
+    else if (eventSource == "dynamiclight" || eventSource == "shadows")
     {
         updateActivation("");
     }
@@ -337,7 +362,7 @@ void CustomVideoSettingsDialog::updateActivation(const std::string& renderer)
     }
     getWidget<CheckBoxWidget>("motionblur")->setActive(light);
     getWidget<CheckBoxWidget>("dof")->setActive(light);
-    getWidget<SpinnerWidget>("shadows")->setActive(light);
+    getWidget<SpinnerWidget>("shadows")->setActive(light || (vk && real_light));
     getWidget<CheckBoxWidget>("mlaa")->setActive(light);
     getWidget<CheckBoxWidget>("ssao")->setActive(light);
     getWidget<CheckBoxWidget>("ssr")->setActive(light || (vk && real_light));
@@ -346,5 +371,7 @@ void CustomVideoSettingsDialog::updateActivation(const std::string& renderer)
     getWidget<CheckBoxWidget>("glow")->setActive(light);
     getWidget<CheckBoxWidget>("bloom")->setActive(light);
     getWidget<CheckBoxWidget>("lightscattering")->setActive(light);
+    getWidget<CheckBoxWidget>("pointlight_shadows")->setActive(vk && real_light &&
+        getWidget<SpinnerWidget>("shadows")->getValue() != 0);
 #endif
 }   // updateActivation

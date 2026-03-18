@@ -30,13 +30,15 @@ void GEVulkanCameraSceneNode::render()
     irr::scene::CCameraSceneNode::render();
 
     m_ubo_data.m_view_matrix = ViewArea.getTransform(irr::video::ETS_VIEW);
-    m_ubo_data.m_projection_matrix = ViewArea.getTransform(irr::video::ETS_PROJECTION);
+    m_ubo_data.m_projection_matrix = m_reverse_z_projection_matrix;
     // https://matthewwellings.com/blog/the-new-vulkan-coordinate-system/
     // Vulkan clip space has inverted Y and half Z
     irr::core::matrix4 clip;
     clip[5] = -1.0f;
-    clip[10] = 0.5f;
-    clip[14] = 0.5f;
+    // Irrlicht actually produces a [0, 1] Direct3D/Vulkan-style depth range,
+    // so the following are unnecessary.
+    //clip[10] = 0.5f;
+    //clip[14] = 0.5f;
     m_ubo_data.m_projection_matrix = clip * m_ubo_data.m_projection_matrix;
     GEVulkanDriver* vk = getVKDriver();
     if (!vk->getRTTTexture() || vk->getRTTTexture()->useSwapChainOutput())

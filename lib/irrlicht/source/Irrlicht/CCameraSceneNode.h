@@ -147,7 +147,7 @@ namespace scene
 
 	protected:
 
-		void recalculateProjectionMatrix();
+		virtual void recalculateProjectionMatrix();
 		void recalculateViewArea();
 
 		core::vector3df Target;

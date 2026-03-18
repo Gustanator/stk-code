@@ -25,6 +25,7 @@
 #include "input/device_manager.hpp"
 #include "input/input_manager.hpp"
 #include "input/multitouch_device.hpp"
+#include "graphics/irr_driver.hpp"
 #include "modes/soccer_world.hpp"
 #include "karts/abstract_kart.hpp"
 #include "karts/explosion_animation.hpp"
@@ -38,6 +39,8 @@
 std::vector<Vec3> CameraNormal::m_tv_cameras;
 float CameraNormal::m_tv_min_delta2 = 9.0f;  // distance min to change camera
 float CameraNormal::m_tv_cooldown_default = 0.4f;  // time to change camera
+
+#include <IVideoDriver.h>
 
 // ============================================================================
 /** Constructor for the normal camera. This is the only camera constructor
@@ -325,7 +328,12 @@ void CameraNormal::update(float dt)
     Camera::update(dt);
     if(!m_kart) return;
 
-    m_camera->setNearValue(1.0f);
+    // Using a low near plane value can lead to rendering artifacts on drivers
+    // that don't support Reverse Z.
+    if (irr_driver->getVideoDriver()->getDriverType() == video::EDT_VULKAN)
+        m_camera->setNearValue(0.1f);
+    else
+        m_camera->setNearValue(1.0f);
 
     float above_kart, cam_angle, side_way, distance, cam_roll_angle;
     bool  smoothing;

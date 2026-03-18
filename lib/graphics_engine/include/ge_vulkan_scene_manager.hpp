@@ -72,6 +72,8 @@ public:
     // ------------------------------------------------------------------------
     std::map<GEVulkanCameraSceneNode*, std::unique_ptr<GEVulkanDrawCall> >&
                                         getDrawCalls() { return m_draw_calls; }
+    // ------------------------------------------------------------------------
+    irr::scene::ILightSceneNode* getSunNode(irr::scene::ISceneNode* node);
 };   // GEVulkanSceneManager
 
 }

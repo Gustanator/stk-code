@@ -39,6 +39,13 @@ enum GEScreenSpaceReflectionType : unsigned
     GSSRT_HIZ400,
     GSSRT_COUNT,
 };
+enum GEShadowType : unsigned
+{
+    GST_NONE = 0,
+    GST_SUN = 1,
+    GST_POINTLIGHT = 1 << 1,
+    GST_COMBINED = GST_SUN | GST_POINTLIGHT
+};
 
 struct GEConfig
 {
@@ -54,6 +61,9 @@ GEScreenSpaceReflectionType m_screen_space_reflection_type;
 bool m_force_deferred;
 std::unordered_set<std::string> m_ondemand_load_texture_paths;
 float m_render_scale;
+unsigned m_shadow_size;
+GEShadowType m_shadow_type;
+unsigned m_max_omni_lights;
 };
 
 void setVideoDriver(irr::video::IVideoDriver* driver);

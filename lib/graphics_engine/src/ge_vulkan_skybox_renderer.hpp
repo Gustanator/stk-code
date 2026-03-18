@@ -5,6 +5,7 @@
 #include <SColor.h>
 #include <array>
 #include <atomic>
+#include <memory>
 
 namespace irr
 {
@@ -15,6 +16,7 @@ namespace GE
 {
 class GEVulkanArrayTexture;
 class GEVulkanEnvironmentMap;
+class GEVulkanShadowFBO;
 
 class GEVulkanSkyBoxRenderer
 {
@@ -25,11 +27,13 @@ private:
     GEVulkanArrayTexture *m_texture_cubemap, *m_diffuse_env_cubemap,
         *m_specular_env_cubemap, *m_dummy_env_cubemap;
 
+    GEVulkanShadowFBO* m_dummy_shadow_fbo;
+
     VkDescriptorSetLayout m_env_descriptor_layout;
 
     VkDescriptorPool m_descriptor_pool;
 
-    std::array<VkDescriptorSet, 2> m_env_descriptor_set;
+    VkDescriptorSet m_dummy_env_descriptor_set;
 
     std::atomic_bool m_skybox_loading, m_env_cubemap_loading;
 
@@ -42,10 +46,8 @@ public:
     // ------------------------------------------------------------------------
     void addSkyBox(irr::scene::ISceneNode* node);
     // ------------------------------------------------------------------------
-    VkDescriptorSetLayout getEnvDescriptorSetLayout() const
+    const VkDescriptorSetLayout& getEnvDescriptorSetLayout() const
                                             { return m_env_descriptor_layout; }
-    // ------------------------------------------------------------------------
-    const VkDescriptorSet* getEnvDescriptorSet() const;
     // ------------------------------------------------------------------------
     void reset()
     {
@@ -62,6 +64,20 @@ public:
         c.color = m_skytop_color.load();
         return c;
     }
+    // ------------------------------------------------------------------------
+    const VkDescriptorSet* getDummyEnvDescriptorSet() const
+                                        { return &m_dummy_env_descriptor_set; }
+    // ------------------------------------------------------------------------
+    bool isLoading() const
+    {
+        return m_skybox == NULL || m_skybox_loading.load() == true ||
+            m_env_cubemap_loading.load() == true;
+    }
+    // ------------------------------------------------------------------------
+    std::shared_ptr<std::atomic<VkImageView> > getEnvObserver() const;
+    // ------------------------------------------------------------------------
+    void fillDescriptor(VkDescriptorSet ds, bool srgb,
+                        GEVulkanShadowFBO* sfbo) const;
 
 };   // GEVulkanSkyBoxRenderer
 

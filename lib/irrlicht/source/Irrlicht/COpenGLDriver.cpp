@@ -768,6 +768,12 @@ COpenGLDriver::COpenGLDriver(const SIrrlichtCreationParameters& params,
 //! destructor
 COpenGLDriver::~COpenGLDriver()
 {
+	cleanUp();
+}
+
+
+void COpenGLDriver::cleanUp()
+{
 	RequestedLights.clear();
 
 	deleteMaterialRenders();
@@ -1108,6 +1114,8 @@ void COpenGLDriver::setTransform(E_TRANSFORMATION_STATE state, const core::matri
 	Matrices[state] = mat;
 	Transformation3DChanged = true;
 
+	if (m_gl_extensions_cleared)
+		return;
 	switch (state)
 	{
 	case ETS_VIEW:
@@ -2616,6 +2624,9 @@ void COpenGLDriver::drawPixel(u32 x, u32 y, const SColor &color)
 
 bool COpenGLDriver::setActiveTexture(u32 stage, const video::ITexture* texture)
 {
+	if (m_gl_extensions_cleared)
+		return false;
+
 	if (stage >= MaxSupportedTextures)
 		return false;
 

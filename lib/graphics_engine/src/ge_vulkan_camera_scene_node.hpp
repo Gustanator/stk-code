@@ -4,6 +4,7 @@
 #include "../source/Irrlicht/CCameraSceneNode.h"
 
 #include <array>
+#include <cstdio>
 
 namespace GE
 {
@@ -23,6 +24,8 @@ class GEVulkanCameraSceneNode : public irr::scene::CCameraSceneNode
 {
 private:
     GEVulkanCameraUBO m_ubo_data;
+
+    irr::core::matrix4 m_reverse_z_projection_matrix;
 
     irr::core::rect<irr::s32> m_viewport;
 public:
@@ -44,6 +47,29 @@ public:
     irr::core::matrix4 getPVM() const;
     // ------------------------------------------------------------------------
     const GEVulkanCameraUBO* const getUBOData() const   { return &m_ubo_data; }
+    // ------------------------------------------------------------------------
+    virtual void recalculateProjectionMatrix()
+    {
+        CCameraSceneNode::recalculateProjectionMatrix();
+        if (IsOrthogonal)
+        {
+            m_reverse_z_projection_matrix.buildProjectionMatrixOrthoLH(
+                Fovy, Fovy, ZFar, ZNear);
+        }
+        else
+        {
+            m_reverse_z_projection_matrix.buildProjectionMatrixPerspectiveFovLH(
+                Fovy, Aspect, ZFar, ZNear);
+        }
+    }
+    // ------------------------------------------------------------------------
+    virtual void setProjectionMatrix(const irr::core::matrix4& projection,
+                                     bool isOrthogonal)
+    {
+        CCameraSceneNode::setProjectionMatrix(projection, isOrthogonal);
+        printf("Calling setProjectionMatrix directly will ignore reverse Z\n");
+    }
+
 };   // GEVulkanCameraSceneNode
 
 }

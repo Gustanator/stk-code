@@ -154,6 +154,11 @@ namespace scene
 			return IsOrthogonal;
 		}
 
+		virtual void setIsOrthogonal(bool orthogonal)
+		{
+			IsOrthogonal = orthogonal;
+		}
+
 		//! Binds the camera scene node's rotation to its target position and vice vera, or unbinds them.
 		/** When bound, calling setRotation() will update the camera's
 		target position to be along its +Z axis, and likewise calling
