@@ -23,56 +23,28 @@ using namespace irr;
 #include <algorithm>
 #include <limits>
 
-#include "challenges/story_mode_timer.hpp"
-#include "challenges/unlock_manager.hpp"
 #include "config/user_config.hpp"
 #include "font/font_drawer.hpp"
-#include "graphics/camera/camera.hpp"
-#include "graphics/central_settings.hpp"
-#include "graphics/2dutils.hpp"
-#ifndef SERVER_ONLY
-#include "graphics/glwrap.hpp"
-#endif
 #include "graphics/irr_driver.hpp"
-#include "graphics/material.hpp"
-#include "graphics/material_manager.hpp"
-#include "guiengine/engine.hpp"
-#include "guiengine/modaldialog.hpp"
-#include "guiengine/scalable_font.hpp"
 #include "io/file_manager.hpp"
-#include "items/powerup_manager.hpp"
-#include "items/projectile_manager.hpp"
-#include "karts/abstract_kart.hpp"
-#include "karts/controller/controller.hpp"
-#include "karts/controller/spare_tire_ai.hpp"
-#include "karts/kart_properties.hpp"
-#include "karts/kart_properties_manager.hpp"
-#include "modes/capture_the_flag.hpp"
-#include "modes/follow_the_leader.hpp"
 #include "modes/linear_world.hpp"
 #include "modes/world.hpp"
-#include "modes/soccer_world.hpp"
-#include "network/protocols/client_lobby.hpp"
 #include "race/race_manager.hpp"
 #include "states_screens/race_gui_multitouch.hpp"
 #include "tracks/track.hpp"
-#include "tracks/track_object_manager.hpp"
-#include "utils/constants.hpp"
-#include "utils/string_utils.hpp"
-#include "utils/translation.hpp"
 
 #include <algorithm>
 
 #include <IrrlichtDevice.h>
 
 RaceGUIEditor::RaceGUIEditor() {
+    // Attribute the variables of the nitrometer in the screen.
+    m_nitrometer_rad   = 94;
+    m_nitrometer_pos.X = 9.5f;
+    m_nitrometer_pos.Y = 11.5f;
 
-}
-
-RaceGUIEditor::~RaceGUIEditor() {
-
-}
-
-void RaceGUIEditor::init() {
-
+    // Attribute the variables of the speedometer in the screen.
+    m_speedometer_rad   = 128;
+    m_speedometer_pos.X = 24.0f;
+    m_speedometer_pos.Y = 10.0f;
 }

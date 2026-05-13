@@ -39,6 +39,7 @@ class AbstractKart;
 class Camera;
 class Material;
 class Referee;
+class RaceGUIEditor;
 class RaceGUIMultitouch;
 
 /**
@@ -200,6 +201,8 @@ protected:
     /** Texture for the lap icon*/
     video::ITexture* m_lap_flag;
     
+    RaceGUIEditor* m_gui_editor;
+
     RaceGUIMultitouch* m_multitouch_gui;
 
     //void createMarkerTexture();

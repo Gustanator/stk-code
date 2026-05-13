@@ -56,10 +56,7 @@ protected:
 
 public:
 
-         RaceGUIEditor();
-        ~RaceGUIEditor();
-
-        void init();
+         RaceGUIEditor();;
 };   // RaceGUIEditor
 
 #endif
