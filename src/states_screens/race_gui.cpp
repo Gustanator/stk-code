@@ -55,6 +55,7 @@ using namespace irr;
 #include "modes/soccer_world.hpp"
 #include "network/protocols/client_lobby.hpp"
 #include "race/race_manager.hpp"
+#include "states_screens/race_gui_editor.hpp"
 #include "states_screens/race_gui_multitouch.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_object_manager.hpp"
@@ -797,8 +798,11 @@ void RaceGUI::drawEnergyMeter(int x, int y, const AbstractKart *kart,
                               const core::vector2df &scaling)
 {
 #ifndef SERVER_ONLY
+    // For tests porproses
+    RaceGUIEditor::m_nitrometer_rad = 94;
+
     float min_ratio        = std::min(scaling.X, scaling.Y);
-    const int GAUGEWIDTH   = 94;//same inner radius as the inner speedometer circle
+    int GAUGEWIDTH         = m_nitrometer_rad;
     int gauge_width        = (int)(GAUGEWIDTH*min_ratio);
     int gauge_height       = (int)(GAUGEWIDTH*min_ratio);
 
@@ -807,16 +811,15 @@ void RaceGUI::drawEnergyMeter(int x, int y, const AbstractKart *kart,
     if (state < 0.0f) state = 0.0f;
     else if (state > 1.0f) state = 1.0f;
 
-    core::vector2df offset;
-    offset.X = (float)(x-gauge_width) - 9.5f*scaling.X;
-    offset.Y = (float)y-11.5f*scaling.Y;
+    RaceGUIEditor::m_nitrometer_pos.X = (float)(x-gauge_width) - 9.5f*scaling.X;
+    RaceGUIEditor::m_nitrometer_pos.Y = (float)y-11.5f*scaling.Y;
 
 
     // Background
-    draw2DImage(m_gauge_empty, core::rect<s32>((int)offset.X,
-                                               (int)offset.Y-gauge_height,
-                                               (int)offset.X + gauge_width,
-                                               (int)offset.Y) /* dest rect */,
+    draw2DImage(m_gauge_empty, core::rect<s32>((int)RaceGUIEditor::m_nitrometer_pos.X,
+                                               (int)RaceGUIEditor::m_nitrometer_pos.Y - gauge_height,
+                                               (int)RaceGUIEditor::m_nitrometer_pos.X + gauge_width,
+                                               (int)RaceGUIEditor::m_nitrometer_pos.Y) /* dest rect */,
                 core::rect<s32>(core::position2d<s32>(0,0),
                                 m_gauge_empty->getSize()) /* source rect */,
                 NULL /* clip rect */, NULL /* colors */,
@@ -877,7 +880,7 @@ void RaceGUI::drawEnergyMeter(int x, int y, const AbstractKart *kart,
         }
 
         unsigned int count = computeVerticesForMeter(position, threshold, vertices, vertices_count,
-                                                     state, gauge_width, gauge_height, offset);
+                                                     state, gauge_width, gauge_height, RaceGUIEditor::m_nitrometer_pos);
 
         if(kart->getControls().getNitro() || kart->isOnMinNitroTime())
             drawMeterTexture(m_gauge_full_bright, vertices, count, true);
@@ -895,7 +898,7 @@ void RaceGUI::drawEnergyMeter(int x, int y, const AbstractKart *kart,
         video::S3DVertex vertices[vertices_count];
 
         unsigned int count = computeVerticesForMeter(position, threshold, vertices, vertices_count,
-                                                     coin_target, gauge_width, gauge_height, offset);
+                                                     coin_target, gauge_width, gauge_height, RaceGUIEditor::m_nitrometer_pos);
 
         drawMeterTexture(m_gauge_goal, vertices, count, true);
     }
@@ -1014,8 +1017,11 @@ void RaceGUI::drawSpeedEnergyRank(const AbstractKart* kart,
                                  float dt)
 {
 #ifndef SERVER_ONLY
-    float min_ratio         = std::min(scaling.X, scaling.Y);
-    const int SPEEDWIDTH   = 128;
+    // For tests porproses
+    RaceGUIEditor::m_speedometer_rad = 128;
+
+    float min_ratio        = std::min(scaling.X, scaling.Y);
+    int SPEEDWIDTH         = m_speedometer_rad;
     int meter_width        = (int)(SPEEDWIDTH*min_ratio);
     int meter_height       = (int)(SPEEDWIDTH*min_ratio);
 
@@ -1025,14 +1031,13 @@ void RaceGUI::drawSpeedEnergyRank(const AbstractKart* kart,
 
     // First draw the meter (i.e. the background )
     // -------------------------------------------------------------------------
-    core::vector2df offset;
-    offset.X = (float)(viewport.LowerRightCorner.X-meter_width) - 24.0f*scaling.X;
-    offset.Y = viewport.LowerRightCorner.Y-10.0f*scaling.Y;
+    RaceGUIEditor::m_speedometer_pos.X = (float)(viewport.LowerRightCorner.X-meter_width) - 24.0f*scaling.X;
+    RaceGUIEditor::m_speedometer_pos.Y = viewport.LowerRightCorner.Y-10.0f*scaling.Y;
 
-    const core::rect<s32> meter_pos((int)offset.X,
-                                    (int)(offset.Y-meter_height),
-                                    (int)(offset.X+meter_width),
-                                    (int)offset.Y);
+    const core::rect<s32> meter_pos((int)RaceGUIEditor::m_speedometer_pos.X,
+                                    (int)(RaceGUIEditor::m_speedometer_pos.Y - meter_height),
+                                    (int)(RaceGUIEditor::m_speedometer_pos.X + meter_width),
+                                    (int)RaceGUIEditor::m_speedometer_pos.Y);
     const core::rect<s32> meter_texture_coords(core::position2d<s32>(0,0),
                                                m_speed_meter_icon->getSize());
     draw2DImage(m_speed_meter_icon, meter_pos, meter_texture_coords, NULL,
@@ -1042,7 +1047,7 @@ void RaceGUI::drawSpeedEnergyRank(const AbstractKart* kart,
 
     const float speed =  kart->getSpeed();
 
-    drawRank(kart, offset, min_ratio, meter_width, meter_height, dt);
+    drawRank(kart, RaceGUIEditor::m_speedometer_pos, min_ratio, meter_width, meter_height, dt);
 
 
     if(speed <=0) return;  // Nothing to do if speed is negative.
@@ -1123,7 +1128,7 @@ void RaceGUI::drawSpeedEnergyRank(const AbstractKart* kart,
     }
 
     unsigned int count = computeVerticesForMeter(position, threshold, vertices, vertices_count,
-                                                     speed_ratio, meter_width, meter_height, offset);
+                                                     speed_ratio, meter_width, meter_height, RaceGUIEditor::m_speedometer_pos);
 
 
     drawMeterTexture(m_speed_bar_icon, vertices, count);

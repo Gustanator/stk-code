@@ -28,6 +28,7 @@
 using namespace irr;
 
 #include "states_screens/race_gui_base.hpp"
+#include "states_screens/race_gui_editor.hpp"
 
 class AbstractKart;
 class InputMap;
@@ -38,7 +39,7 @@ class RaceSetup;
   * \brief Handles the in-race GUI (messages, mini-map, rankings, timer, etc...)
   * \ingroup states_screens
   */
-class RaceGUI : public RaceGUIBase
+class RaceGUI : public RaceGUIBase, public RaceGUIEditor
 {
 private:
 
