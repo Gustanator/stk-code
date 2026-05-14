@@ -24,7 +24,6 @@ using namespace irr;
 #include <limits>
 
 #include "config/user_config.hpp"
-#include "font/font_drawer.hpp"
 #include "graphics/irr_driver.hpp"
 #include "io/file_manager.hpp"
 #include "modes/linear_world.hpp"
@@ -39,12 +38,12 @@ using namespace irr;
 
 RaceGUIEditor::RaceGUIEditor() {
     // Attribute the variables of the nitrometer in the screen.
-    m_nitrometer_rad   = 94;
-    m_nitrometer_pos.X = 9.5f;
-    m_nitrometer_pos.Y = 11.5f;
+    m_nitrometer_rad   = 94 * UserConfigParams::m_speedometer_scale;
+    m_nitrometer_pos.X = 9.5f;  // * UserConfigParams::m_speedometer_x;
+    m_nitrometer_pos.Y = 11.5f; // * UserConfigParams::m_speedometer_y;
 
     // Attribute the variables of the speedometer in the screen.
-    m_speedometer_rad   = 128;
-    m_speedometer_pos.X = 24.0f;
-    m_speedometer_pos.Y = 10.0f;
+    m_speedometer_rad   = 128 * UserConfigParams::m_speedometer_scale;
+    m_speedometer_pos.X = UserConfigParams::m_speedometer_x;
+    m_speedometer_pos.Y = UserConfigParams::m_speedometer_y;
 }

@@ -608,6 +608,19 @@ namespace UserConfigParams
         PARAM_DEFAULT( StringUserConfigParam("", "additional_gp_directory",
                                             "Directory with additional GP's."));
 
+    // ---- Race GUI Editor
+    PARAM_PREFIX GroupUserConfigParam        m_gui_group
+        PARAM_DEFAULT( GroupUserConfigParam("Race GUI", "Race GUI Settings") );
+
+    PARAM_PREFIX FloatUserConfigParam         m_speedometer_scale
+        PARAM_DEFAULT(  FloatUserConfigParam(1.0f, "speedometer_scale", &m_gui_group,
+                                             "The scale of the speedometer") );
+    PARAM_PREFIX FloatUserConfigParam         m_speedometer_x
+        PARAM_DEFAULT(  FloatUserConfigParam(24.0f, "speedometer_x", &m_gui_group,
+                                             "The horizontal position of the speedometer") );
+    PARAM_PREFIX FloatUserConfigParam         m_speedometer_y
+        PARAM_DEFAULT(  FloatUserConfigParam(10.0f, "speedometer_y", &m_gui_group,
+                                             "The vertical position of the speedometer") );
     // ---- Video
     PARAM_PREFIX GroupUserConfigParam        m_video_group
         PARAM_DEFAULT( GroupUserConfigParam("Video", "Video Settings") );
