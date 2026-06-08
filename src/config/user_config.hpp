@@ -1063,7 +1063,7 @@ namespace UserConfigParams
             "Angle between camera and plane of kart (pitch) when the camera is pointing backwards. This is usually larger than the forward-up-angle, since the kart itself otherwise obstricts too much of the view"));
 
     PARAM_PREFIX IntUserConfigParam         m_camera_fov
-            PARAM_DEFAULT(  IntUserConfigParam(80, "fov",
+            PARAM_DEFAULT(  IntUserConfigParam(90, "fov",
             &m_camera_normal,
             "Focal distance (single player)"));
 
@@ -1407,6 +1407,11 @@ namespace UserConfigParams
     PARAM_PREFIX BoolUserConfigParam        m_artist_debug_mode
             PARAM_DEFAULT( BoolUserConfigParam(false, "artist_debug_mode",
                                "Whether to enable track debugging features") );
+
+    PARAM_PREFIX BoolUserConfigParam        m_artist_debug_quick_start
+            PARAM_DEFAULT( BoolUserConfigParam(false, "artist_debug_quick_start",
+                               "Whether to skip the normal race start sequence "
+                               "if artist debug mode is on") );
 
     PARAM_PREFIX BoolUserConfigParam        m_hide_gui
         PARAM_DEFAULT(BoolUserConfigParam(false, "debug_hide_gui",
