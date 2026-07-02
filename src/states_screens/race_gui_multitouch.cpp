@@ -208,7 +208,7 @@ void RaceGUIMultitouch::createRaceGUI()
 
     const int h = irr_driver->getActualScreenSize().Height;
     const float btn_size = 0.125f * h * scale;
-    const float btn2_size = 0.35f * h * scale;
+    const float btn2_size = 0.3f * h * scale;
     const float margin = 0.075f * h * scale;
     const float margin_top = 0.3f * h;
     const float col_size = (btn_size + margin);
@@ -222,7 +222,8 @@ void RaceGUIMultitouch::createRaceGUI()
     if (irr_driver->getDevice()->getLeftPadding() > 0)
         left_padding = irr_driver->getDevice()->getLeftPadding();
 
-    float first_column_x = w - 2 * col_size;
+    float margin_column = 0.75f;
+    float first_column_x = w - (margin_column + 1) * col_size;
     float second_column_x = w - 1 * col_size;
     float steering_wheel_margin = 0.6f * margin;
     float steering_wheel_x = steering_wheel_margin;
@@ -241,8 +242,13 @@ void RaceGUIMultitouch::createRaceGUI()
 
     if (UserConfigParams::m_multitouch_inverted)
     {
+<<<<<<< Updated upstream
         first_column_x   = margin + 1 * col_size + left_padding;
         second_column_x  = margin + left_padding;
+=======
+        first_column_x = margin + margin_column * col_size + left_padding;
+        second_column_x = margin + left_padding;
+>>>>>>> Stashed changes
         steering_wheel_x = w - btn2_size - steering_wheel_margin;
         steering_accel_x = w - btn2_size / 2 - steering_accel_margin;
         left_button_x    = w - 2 * col_size - (btn2_size / 2) - left_padding;
@@ -284,13 +290,13 @@ void RaceGUIMultitouch::createRaceGUI()
                         int(margin_top + col_small_size), int(margin_small),
                         int(btn_small_size), int(btn_small_size));
     m_device->addButton(BUTTON_NITRO,
-                        int(second_column_x), int(h - 2 * col_size),
+                        int(second_column_x), int(h - (margin_column + 1) * col_size),
                         int(btn_size), int(btn_size));
     m_device->addButton(BUTTON_SKIDDING,
                         int(second_column_x), int(h - 1 * col_size),
                         int(btn_size), int(btn_size));
     m_device->addButton(BUTTON_FIRE,
-                        int(first_column_x),  int(h - 2 * col_size),
+                        int(first_column_x),  int(h - (margin_column + 1) * col_size),
                         int(btn_size), int(btn_size));
     m_device->addButton(BUTTON_LOOK_BACKWARDS,
                         int(first_column_x), int(h - 1 * col_size),
