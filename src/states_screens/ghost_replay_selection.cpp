@@ -74,7 +74,7 @@ void GhostReplaySelection::unloaded()
  */
 void GhostReplaySelection::refresh(bool forced_update, bool update_columns)
 {
-    if (ReplayPlay::get()->getNumReplayFile() == 0 || forced_update)
+    if (!ReplayPlay::get()->hasLoadedAllReplays() || forced_update)
         ReplayPlay::get()->loadAllReplayFile();
     defaultSort();
     loadList();
@@ -181,7 +181,7 @@ void GhostReplaySelection::init()
     // 128 is the height of the image file
     m_icon_bank->setScale(1.0f / 128.0f);
     m_icon_bank->setTargetIconSize(128, 128);
-    m_replay_list_widget->setIcons(m_icon_bank, 1.25f);
+    m_replay_list_widget->setIcons(m_icon_bank);
 
     refresh(/*reload replay files*/ false, /* update columns */ true);
 }   // init
@@ -549,12 +549,12 @@ void GhostReplaySelection::onColumnClicked(int column_id, bool sort_desc, bool s
     else if (column_id == 4)
         ReplayPlay::setSortOrder(ReplayPlay::SO_TIME);
     else if (column_id == 5)
-        return; // no sorting by kart icon (yet ?)
+        ReplayPlay::setSortOrder(ReplayPlay::SO_KART_TYPE);
     else if (column_id == 6)
         ReplayPlay::setSortOrder(ReplayPlay::SO_USER);
     else if (column_id == 7)
         ReplayPlay::setSortOrder(ReplayPlay::SO_KART_NUM);
-    else if (column_id == 8)    
+    else if (column_id == 8)
         ReplayPlay::setSortOrder(ReplayPlay::SO_VERSION);
     else
         assert(0);

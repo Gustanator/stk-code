@@ -664,7 +664,8 @@ void ThreeStrikesBattle::spawnSpareTireKarts()
     {
         m_race_gui->addMessage(_P("%i spare tire kart has been spawned!",
                                 "%i spare tire karts have been spawned!",
-                                spawn_sta), NULL, 2.0f);
+                                /* to pick the plural form */ spawn_sta,
+                                /* to insert in the final string */spawn_sta), NULL, 2.0f);
     }
     for (unsigned int i = 0; i < spawn_sta; i++)
     {
@@ -700,11 +701,18 @@ void ThreeStrikesBattle::loadCustomModels()
                 int node = -1;
                 ag->findRoadSector(getRescueTransform(i).getOrigin(), &node,
                     NULL, true);
-                assert(node != -1);
-                sta_possible_nodes.erase(std::remove_if(
-                    sta_possible_nodes.begin(), sta_possible_nodes.end(),
-                    [node](const int n) { return n == node; }),
-                    sta_possible_nodes.end());
+                if (node == -1)
+                {
+                    Log::warn("ThreeStrikesBattle",
+                        "Start position %i is not a valid rescue position", i);
+                }
+                else
+                {
+                    sta_possible_nodes.erase(std::remove_if(
+                        sta_possible_nodes.begin(), sta_possible_nodes.end(),
+                        [node](const int n) { return n == node; }),
+                        sta_possible_nodes.end());
+                }
             }
 
             // Find random nodes to pre-spawn spare tire karts

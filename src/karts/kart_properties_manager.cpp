@@ -55,6 +55,7 @@ std::vector<std::string> KartPropertiesManager::m_kart_search_path;
 KartPropertiesManager::KartPropertiesManager()
 {
     m_current_favorite_status = NULL;
+    m_hat_name = "";
     m_all_groups.clear();
 }   // KartPropertiesManager
 
@@ -139,7 +140,7 @@ void KartPropertiesManager::removeKart(const std::string &ident)
             {
                 m_groups_2_indices_no_custom.erase(groups[i]);
             }
-        } 
+        }
 
         it = std::find(m_groups_2_indices[groups[i]].begin(),
                        m_groups_2_indices[groups[i]].end(),   index);
@@ -199,6 +200,11 @@ void KartPropertiesManager::loadAllKarts(bool loading_icon)
 {
     m_all_kart_dirs.clear();
     std::vector<std::string>::const_iterator dir;
+    if (stk_config->m_min_kart_version > stk_config->m_max_kart_version)
+    {
+        Log::fatal("KartPropertiesManager", "The max kart version "
+            "is smaller than the min kart version!");
+    }
     for(dir = m_kart_search_path.begin(); dir!=m_kart_search_path.end(); dir++)
     {
         // First check if there is a kart in the current directory
@@ -300,20 +306,17 @@ bool KartPropertiesManager::loadKart(const std::string &dir)
     }
     catch (std::runtime_error& err)
     {
-        Log::error("[KartPropertiesManager]", "Giving up loading '%s': %s",
-                    config_filename.c_str(), err.what());
-        return false;
-    }
-
-    // If the version of the kart file is not supported,
-    // ignore this .kart file
-    if (kart_properties->getVersion() < stk_config->m_min_kart_version ||
-        kart_properties->getVersion() > stk_config->m_max_kart_version)
-    {
-        Log::warn("[KartPropertiesManager]", "Warning: kart '%s' is not "
-                  "supported by this binary, ignored.",
-                  kart_properties->getIdent().c_str());
-        delete kart_properties;
+        char ver[] = "version";
+        if (strcmp(err.what(), ver) == 0)
+        {
+            Log::warn("[KartPropertiesManager]", "Warning: kart '%s' is not "
+                        "supported by this binary, ignored.", config_filename.c_str());
+        }
+        else
+        {
+            Log::error("[KartPropertiesManager]", "Giving up loading '%s': %s",
+                        config_filename.c_str(), err.what());
+        }
         return false;
     }
 
@@ -341,9 +344,21 @@ bool KartPropertiesManager::loadKart(const std::string &dir)
   */
 void KartPropertiesManager::setHatMeshName(const std::string &hat_name)
 {
+    m_hat_name = hat_name;
+    setHatMeshName();
+}   // setHatMeshName
+
+//-----------------------------------------------------------------------------
+/** Sets the name of a mesh to use as a hat for all karts, using the stored m_hat_name
+  */
+void KartPropertiesManager::setHatMeshName()
+{
+    if (m_hat_name.empty())
+        return;
+
     for (unsigned int i=0; i<m_karts_properties.size(); i++)
     {
-        m_karts_properties[i].setHatMeshName(hat_name);
+        m_karts_properties[i].setHatMeshName(m_hat_name);
     }
 }   // setHatMeshName
 

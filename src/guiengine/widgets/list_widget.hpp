@@ -98,7 +98,7 @@ namespace GUIEngine
 
         bool m_header_created;
 
-        float m_icon_scale;
+        float m_line_height_scale;
 
         void repairSortCol()
         {
@@ -111,7 +111,7 @@ namespace GUIEngine
         }
 
         void updateHeader();
-        void updateIconScale();
+        void updateScale();
         int getHeaderHeight() const;
         irr::core::rect<s32> getListBoxSize() const;
 
@@ -143,7 +143,9 @@ namespace GUIEngine
           *        you're done with it (but do not delete it when the list widget is still active)
           * \pre may only be called after the widget has been added to the screen with add()
           */
-        void setIcons(irr::gui::STKModifiedSpriteBank* icons, float scale = -1.0f);
+        void setIcons(irr::gui::STKModifiedSpriteBank* icons);
+
+        void setLineHeightScale(float scale);
         
         
         // ---- contents management
@@ -218,22 +220,22 @@ namespace GUIEngine
           * \brief rename an item and/or change its icon based on its ID
           * \pre may only be called after the widget has been added to the screen with add()
           */
-        void renameCell(const int row_num, const int col_num, 
+        void renameCell(const int row_num, const int col_num,
                         const irr::core::stringw &newName, const int icon=-1);
         
         /**
          * renames first cell only
          */
-        void renameItem(const int row_num, 
+        void renameItem(const int row_num,
                         const irr::core::stringw &newName, const int icon=-1);
-        void renameItem(const std::string  & internal_name, 
+        void renameItem(const std::string  & internal_name,
                         const irr::core::stringw &newName, const int icon=-1);
 
         /**
           * \brief rename an item and/or change its icon based on its internal name
           * \pre may only be called after the widget has been added to the screen with add()
           */
-        void renameCell(const std::string internalName, const int col_num, 
+        void renameCell(const std::string internalName, const int col_num,
                         const irr::core::stringw &newName, const int icon=-1)
         {
             const int id = getItemID(internalName);
@@ -291,14 +293,14 @@ namespace GUIEngine
         /** \brief implementing method from base class Widget */
         virtual EventPropagation rightPressed(const int playerID);
 
-        /** \brief implement common core parts of upPressed and downPressed */ 
+        /** \brief implement common core parts of upPressed and downPressed */
         EventPropagation moveToNextItem(const bool down);
 
         /* Apply page up, page down, list end or list start effects */
         void pageMove(bool up);
         void listStart();
         void listEnd();
-        
+
         void setColumnListener(IListWidgetHeaderListener* listener)
         {
             if (m_listener) delete m_listener;

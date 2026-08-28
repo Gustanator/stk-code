@@ -293,7 +293,7 @@ void GPInfoScreen::init()
 
         m_icon_bank->setScale(1.0f / 128.0f);
         m_icon_bank->setTargetIconSize(128, 128);
-        m_highscore_list->setIcons(m_icon_bank, 1.2f);
+        m_highscore_list->setIcons(m_icon_bank);
         RaceManager::get()->setNumKarts(RaceManager::get()->getNumLocalPlayers() + m_ai_kart_spinner->getValue());
         // We don't save highscores for random gps so load highscores here
         updateHighscores();
@@ -461,7 +461,7 @@ void GPInfoScreen::onUpdate(float dt)
     screenshot->m_properties[PROP_ICON] = file;
 }   // onUpdate
 
-/** Get number of available tracks for random GPs 
+/** Get number of available tracks for random GPs
  */
 int GPInfoScreen::getMaxNumTracks(std::string group)
 {
@@ -492,7 +492,7 @@ int GPInfoScreen::getMaxNumTracks(std::string group)
                 track_manager->getTrack(tracks[i])->isRaceTrack())
             {
                 max_num_tracks++;
-            }               
+            }
         }
     }
     

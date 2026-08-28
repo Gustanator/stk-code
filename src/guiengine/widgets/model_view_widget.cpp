@@ -173,7 +173,7 @@ void ModelViewWidget::update(float delta)
         if (fabsf(m_angle - m_rotation_target) < 2.0f) m_rotation_mode = ROTATE_OFF;
     }
    
-#ifdef SERVER_ONLY 
+#ifdef SERVER_ONLY
     return;
 #else
     if (m_render_target == NULL)
@@ -186,7 +186,7 @@ void ModelViewWidget::update(float delta)
     if (m_rtt_main_node == NULL)
     {
         setupRTTScene();
-    }    
+    }
 
     m_rtt_main_node->setRotation(core::vector3df(0.0f, m_angle, 0.0f));
 
@@ -382,3 +382,13 @@ void ModelViewWidget::drawRTTScene(const irr::core::rect<s32>& dest_rect) const
 #endif
 }   // drawRTTScene
 
+// ----------------------------------------------------------------------------
+/* We scale very long or tall karts to ensure they fit.
+* For most karts, instead of increasing the size of the kart to occupy the full
+* widget space, we use the same scale so that visual size comparisons are meaningful. */
+float ModelViewWidget::computeScale(float kart_length, float kart_height) const
+{
+    float scale = std::min(32.0f / kart_height, 50.0f / kart_length);
+    scale = std::min(33.0f, scale);
+    return scale;
+}   // computeKartScale

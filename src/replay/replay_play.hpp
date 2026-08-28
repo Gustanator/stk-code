@@ -50,7 +50,8 @@ public:
         SO_LAPS,
         SO_TIME,
         SO_USER,
-        SO_VERSION
+        SO_VERSION,
+        SO_KART_TYPE
     };
 
     class ReplayData
@@ -102,6 +103,10 @@ public:
                 case SO_VERSION:
                     return m_stk_version < r.m_stk_version;
                     break;
+                case SO_KART_TYPE:
+                    // There should be at least one kart in each replay
+                    return m_kart_list[0] < r.m_kart_list[0];
+                    break;
             }   // switch
             return true;
         }   // operator <
@@ -119,6 +124,8 @@ private:
     bool                     m_second_replay_enabled;
 
     std::vector<ReplayData>  m_replay_file_list;
+
+    bool                     m_loaded_all_replays;
 
     /** All ghost karts. */
     std::vector<std::shared_ptr<GhostKart> > m_ghost_karts;
@@ -146,7 +153,7 @@ public:
 
     // ------------------------------------------------------------------------
     void               setSecondReplayFile(unsigned int n, bool second_replay_enabled)
-                           { m_second_replay_file = n; 
+                           { m_second_replay_file = n;
                              m_second_replay_enabled = second_replay_enabled;}
 
     // ------------------------------------------------------------------------
@@ -167,6 +174,8 @@ public:
     // ------------------------------------------------------------------------
     const unsigned int getNumReplayFile() const
                            { return (unsigned int)m_replay_file_list.size(); }
+    // ------------------------------------------------------------------------
+    const bool hasLoadedAllReplays() const { return m_loaded_all_replays; }
     // ------------------------------------------------------------------------
     std::shared_ptr<GhostKart> getGhostKart(int n) { return m_ghost_karts[n]; }
     // ------------------------------------------------------------------------

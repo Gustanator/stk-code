@@ -119,7 +119,7 @@ void Camera::resetAllCameras()
 }   // resetAllCameras
 
 // ----------------------------------------------------------------------------
-Camera::Camera(CameraType type, int camera_index, AbstractKart* kart) 
+Camera::Camera(CameraType type, int camera_index, AbstractKart* kart)
       : m_kart(NULL)
 {
     m_mode          = CM_NORMAL;
@@ -181,7 +181,7 @@ void Camera::setupCamera()
     m_viewport = irr_driver->getSplitscreenWindow(m_index);
     m_aspect = (float)((float)(m_viewport.getWidth()) / (float)(m_viewport.getHeight()));
     m_scaling = core::vector2df(
-        float(irr_driver->getActualScreenSize().Width) / m_viewport.getWidth() , 
+        float(irr_driver->getActualScreenSize().Width) / m_viewport.getWidth() ,
         float(irr_driver->getActualScreenSize().Height) / m_viewport.getHeight());
 
     m_camera->setAspectRatio(m_aspect);
@@ -194,10 +194,15 @@ void Camera::setupCamera()
  */
 void Camera::setMode(Mode mode)
 {
-    if (mode == m_mode) return;
+    if (mode == m_mode)
+        return;
+
+    if (!isSpectatorMode())
+        m_last_non_spectating_mode = m_mode;
+
     // If we switch from reverse view, move the camera immediately to the
     // correct position.
-    if( (m_mode==CM_REVERSE && mode==CM_NORMAL) || 
+    if( (m_mode==CM_REVERSE && mode==CM_NORMAL) ||
         (m_mode==CM_FALLING && mode==CM_NORMAL)    )
     {
         Vec3 start_offset(0, 1.6f, -3);
@@ -209,42 +214,22 @@ void Camera::setMode(Mode mode)
         m_camera->setTarget(target_position.toIrrVector());
     }
 
-    m_previous_mode = m_mode;
     m_mode = mode;
 }   // setMode
 
 // ----------------------------------------------------------------------------
-/** Returns the current mode of the camera.
- */
-Camera::Mode Camera::getMode()
-{
-    return m_mode;
-}   // getMode
-
-// ----------------------------------------------------------------------------
-/** Returns the last known mode of the camera.
- */
-Camera::Mode Camera::getPreviousMode()
-{
-    return m_previous_mode;
-}   // getPreviousMode
-
-// ----------------------------------------------------------------------------
-/** Returns true if camera is a spectator camera
- */
-bool Camera::isSpectatorMode()
-{
-    return ((m_mode == CM_SPECTATOR_TOP_VIEW) || (m_mode == CM_SPECTATOR_SOCCER));
-}   // isSpectatorMode
-
-// ----------------------------------------------------------------------------
-/** Switch to next spectator mode  (a -> soccer -> top view -> a)
+/** Switch to the next spectator mode.
  */
 void Camera::setNextSpectatorMode()
 {
-    if (m_mode == CM_SPECTATOR_SOCCER) m_mode = CM_SPECTATOR_TOP_VIEW;
-    else if (m_mode == CM_SPECTATOR_TOP_VIEW) m_mode = m_previous_mode;
-    else setMode(CM_SPECTATOR_SOCCER);
+    // FIXME : the "spectator soccer" camera also works outside of soccer,
+    //         although it's pretty ugly (far away view from the kart)
+    //         It should either be renamed or disabled outside soccer.
+    Mode mode = (!isSpectatorMode())      ? CM_SPECTATOR_SOCCER   :
+        (m_mode == CM_SPECTATOR_SOCCER)   ? CM_SPECTATOR_TOP_VIEW :
+        (m_mode == CM_SPECTATOR_TOP_VIEW) && CameraNormal::hasTVCameras() ?
+            CM_SPECTATOR_TV : m_last_non_spectating_mode;
+    setMode(mode);
 }   // setNextSpectatorMode
 
 //-----------------------------------------------------------------------------

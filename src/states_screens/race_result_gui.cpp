@@ -31,6 +31,7 @@
 #include "config/user_config.hpp"
 #include "graphics/2dutils.hpp"
 #include "graphics/material.hpp"
+#include "guiengine/CGUISpriteBank.hpp"
 #include "guiengine/engine.hpp"
 #include "guiengine/message_queue.hpp"
 #include "guiengine/modaldialog.hpp"
@@ -39,6 +40,7 @@
 #include "guiengine/widget.hpp"
 #include "guiengine/widgets/icon_button_widget.hpp"
 #include "guiengine/widgets/label_widget.hpp"
+#include "guiengine/widgets/list_widget.hpp"
 #include "guiengine/widgets/ribbon_widget.hpp"
 #include "io/file_manager.hpp"
 #include "karts/controller/controller.hpp"
@@ -105,6 +107,7 @@ void RaceResultGUI::init()
     m_started_race_over_music = false;
     music_manager->stopMusic();
 
+    m_has_set_goal_lists = false;
     bool human_win = true;
     bool has_human_players = false;
     bool in_first_place = false;
@@ -198,39 +201,27 @@ void RaceResultGUI::init()
         m_end_track = (int)tracks.size();
     }
 
-    if (!human_win && !NetworkConfig::get()->isNetworking() &&
-        !TipsManager::get()->isEmpty())
-    {
-        std::string tipset;
-        // For races with powerups, pick at random
-        // between the race-powerup and time-trial tipsets.
-        if (RaceManager::get()->isLinearRaceMode() &&
-            !RaceManager::get()->isTimeTrialMode())
-        {
-            RandomGenerator randgen;
-            randgen.seed((int)StkTime::getTimeSinceEpoch());
-            unsigned int racePowerupTipCount = TipsManager::get()->getTipCount("race-powerup");
-            unsigned int raceTipCount = racePowerupTipCount + TipsManager::get()->getTipCount("time-trial");
-            unsigned int randvalue = randgen.get(raceTipCount);
-            tipset = (randvalue < racePowerupTipCount) ? "race-powerup" : "time-trial";
-        }
-        else if (RaceManager::get()->isSoccerMode())
-        {
-            tipset = "soccer";
-        }
-        else if (RaceManager::get()->isTimeTrialMode())
-        {
-            tipset = "time-trial";
-        }
-        else
-        {
-            return; // Don't show irrelevant tips
-        }
+    if (!human_win)
+        scheduleTip();
 
-        core::stringw tip = TipsManager::get()->getTip(tipset);
-        core::stringw tips_string = _("Tip: %s", tip);
-        MessageQueue::add(MessageQueue::MT_GENERIC, tips_string);
+    // Load the kart icons
+    m_icon_bank = new irr::gui::STKModifiedSpriteBank( GUIEngine::getGUIEnv());
+
+    for(unsigned int i=0; i<kart_properties_manager->getNumberOfKarts(); i++)
+    {
+        const KartProperties* prop = kart_properties_manager->getKartById(i);
+        m_icon_bank->addTextureAsSprite(prop->getIconMaterial()->getTexture());
     }
+
+    const KartProperties* prop = kart_properties_manager->getKart("tux");
+    m_icon_default_kart = m_icon_bank->addTextureAsSprite(prop->getIconMaterial()->getTexture());
+
+    // 128 is the height of the image file
+    m_icon_bank->setScale(1.0f / 128.0f);
+    m_icon_bank->setTargetIconSize(128, 128);
+
+    m_red_goal_list = nullptr;
+    m_blue_goal_list = nullptr;
 }   // init
 
 //-----------------------------------------------------------------------------
@@ -244,7 +235,61 @@ void RaceResultGUI::tearDown()
     {
         m_finish_sound->stop();
     }
+
+    if (m_has_set_goal_lists)
+    {
+        manualRemoveWidget(m_blue_goal_list);
+        m_blue_goal_list->setIcons(NULL);
+        delete m_blue_goal_list;
+        manualRemoveWidget(m_red_goal_list);
+        m_red_goal_list->setIcons(NULL);
+        delete m_red_goal_list;
+        m_has_set_goal_lists = false;
+    }
+
+    delete m_icon_bank;
+    m_icon_bank = NULL;
 }   // tearDown
+
+//-----------------------------------------------------------------------------
+/** Request the display of a tip relevant to the current game mode
+ */
+void RaceResultGUI::scheduleTip()
+{
+    // Only display a tip in local play and if there are tips
+    if (NetworkConfig::get()->isNetworking() || TipsManager::get()->isEmpty())
+        return;
+
+    std::string tipset;
+    // For races with powerups, pick at random
+    // between the race-powerup and time-trial tipsets.
+    if (RaceManager::get()->isLinearRaceMode() &&
+        !RaceManager::get()->isTimeTrialMode())
+    {
+        RandomGenerator randgen;
+        randgen.seed((int)StkTime::getTimeSinceEpoch());
+        unsigned int racePowerupTipCount = TipsManager::get()->getTipCount("race-powerup");
+        unsigned int raceTipCount = racePowerupTipCount + TipsManager::get()->getTipCount("time-trial");
+        unsigned int randvalue = randgen.get(raceTipCount);
+        tipset = (randvalue < racePowerupTipCount) ? "race-powerup" : "time-trial";
+    }
+    else if (RaceManager::get()->isSoccerMode())
+    {
+        tipset = "soccer";
+    }
+    else if (RaceManager::get()->isTimeTrialMode())
+    {
+        tipset = "time-trial";
+    }
+    else
+    {
+        return; // Don't show irrelevant tips
+    }
+
+    core::stringw tip = TipsManager::get()->getTip(tipset);
+    core::stringw tips_string = _("Tip: %s", tip);
+    MessageQueue::add(MessageQueue::MT_GENERIC, tips_string);
+}   // scheduleTip
 
 //-----------------------------------------------------------------------------
 /** Makes the correct buttons visible again, and gives them the right label.
@@ -287,7 +332,7 @@ void RaceResultGUI::enableAllButtons()
         left->setLabel(_("Back to main menu"));
         left->setImage("gui/icons/back.png");
         left->setVisible(true);
-        return;        
+        return;
     }
 
     // If we're in a network world, change the buttons text
@@ -1549,9 +1594,6 @@ void RaceResultGUI::displaySoccerResults()
     const int red_score = sw->getScore(KART_TEAM_RED);
     const int blue_score = sw->getScore(KART_TEAM_BLUE);
 
-    GUIEngine::Widget *table_area = getWidget("result-table");
-    int height = table_area->m_h + table_area->m_y;
-
     if (red_score > blue_score)
         result_text = _("Red Team Wins");
     else if (blue_score > red_score)
@@ -1601,34 +1643,45 @@ void RaceResultGUI::displaySoccerResults()
 
     // Draw the scorers for each team
     current_y += (3 * rect.Height) / 4;
-    drawTeamScorers(KART_TEAM_RED, current_x, current_y, height);
-    drawTeamScorers(KART_TEAM_BLUE, current_x, current_y, height);
+
+    if (!m_has_set_goal_lists)
+    {
+        setGoalList(KART_TEAM_RED);
+        setGoalList(KART_TEAM_BLUE);
+        m_has_set_goal_lists = true;
+    }
+
+    positionGoalList(KART_TEAM_RED, current_y);
+    positionGoalList(KART_TEAM_BLUE,current_y);
 } // displaySoccerResults
 
 //-----------------------------------------------------------------------------
-/** Displays the goal scorers for a team
- *  \param team The team for which to draw goal scorers
+/** Prepares the goal lists for a team.
+ *  \param team The team for which to make the goal list.
  *  \param x Left limit of the scorers lists (both blue and red)
  *  \param y Top limit of the scorers lists
- *  \param height Maximum y of the table area (??) */
-void RaceResultGUI::drawTeamScorers(KartTeam team, int x, int y, int height)
+ *  \param height Maximum y of the table area */
+void RaceResultGUI::setGoalList(KartTeam team)
 {
-    int current_x = (team == KART_TEAM_RED) ? x : x + UserConfigParams::m_width / 2;
-    int current_y = y;
-    core::rect<s32> pos(current_x, current_y, current_x, current_y);
-    int prev_y = y;
-    gui::IGUIFont* font = GUIEngine::getSmallFont();
-    core::dimension2du rect; // Filled later
+    GUIEngine::ListWidget* goal_list = new GUIEngine::ListWidget();
+
+    if (team == KART_TEAM_RED)
+        m_red_goal_list = goal_list;
+    else
+        m_blue_goal_list = goal_list;
+
+    manualAddWidget(goal_list);
+    goal_list->add();
+    goal_list->clear();
+    goal_list->clearColumns();
+    goal_list->setActive(false); // Prevent selection
+    goal_list->setIcons(m_icon_bank);
+    goal_list->setLineHeightScale(0.9f);
+
     core::stringw scorer_text;
-    static video::SColor color = video::SColor(255, 255, 255, 255);
+    core::stringw goal_time;
     SoccerWorld* sw = (SoccerWorld*)World::getWorld();
     std::vector<SoccerWorld::ScorerData> scorers = sw->getScorers(team);
-
-    // Display a maximum of 10 scorers
-    while (scorers.size() > 10)
-    {
-        scorers.erase(scorers.begin());
-    }
 
     for (unsigned int i = 0; i < scorers.size(); i++)
     {
@@ -1650,38 +1703,53 @@ void RaceResultGUI::drawTeamScorers(KartTeam team, int x, int y, int height)
             scorer_text += StringUtils::getCountryFlag(scorers.at(i).m_country_code);
         }
 
-        scorer_text.append("  ");
-        scorer_text.append(StringUtils::timeToString(scorers.at(i).m_time).c_str());
-        rect = font->getDimension(scorer_text.c_str());
+        goal_time = StringUtils::timeToString(scorers.at(i).m_time).c_str();
 
-        if (height - prev_y < ((short)scorers.size() + 1)*(short)rect.Height)
-            current_y += (height - prev_y) / ((short)scorers.size() + 1);
-        else
-            current_y += rect.Height;
+        int kart_icon = -1;
 
-        if (current_y > height) break;
-
-        pos = core::rect<s32>(current_x, current_y, current_x, current_y);
-        font->draw(scorer_text, pos, (own_goal ?
-            video::SColor(255, 255, 0, 0) : color), true, false);
-        irr::video::ITexture* scorer_icon = NULL;
-        const KartProperties* kp = kart_properties_manager->getKart(scorers.at(i).m_kart);
-        // For addon kart online
-        if (!kp)
-            kp = kart_properties_manager->getKart("tux");
-        if (kp)
-            scorer_icon = kp->getIconMaterial()->getTexture();
-        if (scorer_icon)
+        for(unsigned int j=0; j < kart_properties_manager->getNumberOfKarts(); j++)
         {
-            core::recti source_rect = core::recti(core::vector2di(0, 0), scorer_icon->getSize());
-            irr::u32 offset_x = (irr::u32)(font->getDimension(scorer_text.c_str()).Width / 1.5f);
-            core::recti r = core::recti(current_x - offset_x - m_width_icon, current_y,
-                current_x - offset_x, current_y + m_width_icon);
-            draw2DImage(scorer_icon, r, source_rect,
-                NULL, NULL, true);
+            const KartProperties* prop = kart_properties_manager->getKartById(j);
+            if (scorers.at(i).m_kart == prop->getIdent())
+            {
+                kart_icon = j;
+                break;
+            }
         }
+
+        // This may happen online when other players are using
+        // an addon kart that is not present locally
+        if (kart_icon == -1)
+            kart_icon = m_icon_default_kart;
+
+        std::vector<GUIEngine::ListWidget::ListCell> row;
+
+        row.push_back(GUIEngine::ListWidget::ListCell(goal_time, -1 /* icon */, 3, false /* center */));
+        row.push_back(GUIEngine::ListWidget::ListCell("", kart_icon, 1, false /* center */));
+        row.push_back(GUIEngine::ListWidget::ListCell(scorer_text, -1 /* icon */, 4, false /* center */));
+
+        goal_list->addItem(StringUtils::toString(i), row);
+        if (own_goal)
+            goal_list->markItemRed(i);
     } // for scorers.size()
-} // drawTeamScorers
+}   // setGoalList
+
+void RaceResultGUI::positionGoalList(KartTeam team, int starting_y)
+{
+    GUIEngine::ListWidget* goal_list = (team == KART_TEAM_RED) ? m_red_goal_list
+                                                               : m_blue_goal_list;
+    // Position the list widget in the result table
+    GUIEngine::Widget *table_area = getWidget("result-table");
+    int horizontal_margin = table_area->m_w / 36;
+    int left_limit = table_area->m_x + horizontal_margin;
+    if (team == KART_TEAM_BLUE)
+        left_limit += table_area->m_w / 2;
+    int list_width = (table_area->m_w / 2) - 2 * horizontal_margin;
+    int vertical_margin = table_area->m_h / 60;
+    int list_height = table_area->m_h + table_area->m_y - starting_y - (2 * vertical_margin);
+    goal_list->move(left_limit, starting_y + vertical_margin,
+                    list_width, list_height);
+}
 
 //-----------------------------------------------------------------------------
 
@@ -1899,12 +1967,12 @@ void RaceResultGUI::displayPostRaceInfo()
     
     int size_esti_real = size_esti * m_distance_between_meta_rows;
 
-    int current_y = displayHighscores(x, y, 
+    int current_y = displayHighscores(x, y,
                         size_esti_real > UserConfigParams::m_height * 0.7f);
 
     // Display the number of laps, difficulty, and the best lap time if applicable
     if (!RaceManager::get()->isSoccerMode())
-        current_y = displayLapDifficulty(x, current_y, 
+        current_y = displayLapDifficulty(x, current_y,
                         size_esti_real > UserConfigParams::m_height * 0.8f);
 
     // Display challenge result and goals
@@ -2276,11 +2344,11 @@ int RaceResultGUI::displayChallengeInfo(int x, int y, bool increase_density)
         text_string = _("Reached Requirements of SuperTux");
         the_font->initGlyphLayouts(text_string,
                                    best_while_slower_layout);
-        irr::gui::breakGlyphLayouts(best_while_slower_layout, 
+        irr::gui::breakGlyphLayouts(best_while_slower_layout,
                                     UserConfigParams::m_width * 0.93f - x,
                                     the_font->getInverseShaping(),
                                     the_font->getScale());
-        irr::core::dimension2du dim = 
+        irr::core::dimension2du dim =
             irr::gui::getGlyphLayoutsDimension(best_while_slower_layout,
                                                line_height,
                                                the_font->getInverseShaping(),
@@ -2355,24 +2423,28 @@ void RaceResultGUI::displayBenchmarkSummary()
     font = GUIEngine::getFont();
     rect = font->getDimension(title_text.c_str());
 
-    core::stringw info_text[9];
+    core::stringw info_text[11];
     core::stringw value = StringUtils::toWString(
         StringUtils::timeToString(float(profiler.getTotalFrametime())/1000000.0f, 2, true));
-    info_text[0] = _("Test duration: %s",     value);
+    info_text[0] = _("Test duration: %s",         value);
     value = StringUtils::toWString(profiler.getTotalFrames());
-    info_text[1] = _("Number of frames: %s",  value);
+    info_text[1] = _("Number of frames: %s",      value);
+    value = StringUtils::toWString(UserConfigParams::m_real_width);
+    info_text[2] = _("Horizontal resolution: %s", value);
+    value = StringUtils::toWString(UserConfigParams::m_real_height);
+    info_text[3] = _("Vertical resolution: %s",   value);
     value = StringUtils::toWString(profiler.getFPSMetricsLow());
-    info_text[2] = _("Steady FPS: %s",        value);
+    info_text[4] = _("Steady FPS: %s",            value);
     value = StringUtils::toWString(profiler.getFPSMetricsMid());
-    info_text[3] = _("Mostly Steady FPS: %s", value); // TODO - better name
+    info_text[5] = _("Mostly Steady FPS: %s",     value); // TODO - better name
     value = StringUtils::toWString(profiler.getFPSMetricsHigh());
-    info_text[4] = _("Typical FPS: %s",       value);
+    info_text[6] = _("Typical FPS: %s",           value);
 
-    for (int i=0; i<5; i++)
+    for (int i=0; i<7; i++)
     {
         pos = core::rect<s32>(current_x, current_y, current_x, current_y);
         font->draw(info_text[i].c_str(), pos, white_color, true, false);
-        current_y += (5 * rect.Height) / 4;       
+        current_y += (5 * rect.Height) / 4;
     }
 
     // Draw info on the graphical settings
@@ -2388,31 +2460,42 @@ void RaceResultGUI::displayBenchmarkSummary()
     bool modern_gl = gl && !UserConfigParams::m_force_legacy_device;
     bool directx = (std::string(UserConfigParams::m_render_driver) == "directx9");
 
-    value = StringUtils::toWString(UserConfigParams::m_real_width);
-    info_text[0] = _("Horizontal resolution: %s",     value);
-    value = StringUtils::toWString(UserConfigParams::m_real_height);
-    info_text[1] = _("Vertical resolution: %s",  value);
-    info_text[2] = (UserConfigParams::m_dynamic_lights && (modern_gl || vk)) ? _("Dynamic lighting: ON")
-                                                                             : _("Dynamic lighting: OFF");
     value = StringUtils::toWString((UserConfigParams::m_dynamic_lights && (modern_gl || vk)) ?
                           UserConfigParams::m_scale_rtts_factor * 100 : 100);
-    info_text[3] = _("Render resolution: %s%%", value);
-    info_text[4] = (UserConfigParams::m_mlaa && modern_gl) ? _("Anti-aliasing: ON")
-                                                           : _("Anti-aliasing : OFF");
-    info_text[5] = (UserConfigParams::m_degraded_IBL && (modern_gl || vk)) ? _("Image-based lighting: OFF")
-                                                                           :  _("Image-based lighting: ON");
-    info_text[6] = (UserConfigParams::m_ssao && modern_gl) ? _("Ambient occlusion: ON")
-                                                           : _("Ambient occlusion: OFF");
+    info_text[0] = _("Render resolution: %s%%", value);
+    info_text[1] = (UserConfigParams::m_dynamic_lights && (modern_gl || vk)) ? _("Dynamic lights: Enabled") :
+                                                                               _("Dynamic lights: Disabled");
+    info_text[2] = (!UserConfigParams::m_degraded_IBL && (modern_gl || vk)) ? _("Image-based lighting: Enabled") :
+                                                                              _("Image-based lighting: Disabled");
+    info_text[3] = (UserConfigParams::m_mlaa && modern_gl) ? _("Anti-aliasing: Enabled") :
+                                                             _("Anti-aliasing: Disabled");
+    int geometry_detail = UserConfigParams::m_geometry_level;
+    info_text[4] = _("Geometry detail: %s",
+        geometry_detail == 0 ? _C("Geometry level", "Very low")  :
+        geometry_detail == 1 ? _C("Geometry level", "Low")       :
+        geometry_detail == 2 ? _C("Geometry level", "Medium")    :
+        geometry_detail == 3 ? _C("Geometry level", "High")      :
+        geometry_detail == 4 ? _C("Geometry level", "Very high") :
+                               _C("Geometry level", "Ultra high"));
+    info_text[5] = (UserConfigParams::m_light_shaft && modern_gl) ? _("Light shaft (God rays): Enabled") :
+                                                                    _("Light shaft (God rays): Disabled");
+    info_text[6] = (UserConfigParams::m_ssao && modern_gl) ?  _("Ambient occlusion: Enabled") :
+                                                              _("Ambient occlusion: Disabled");
     value = StringUtils::toWString(UserConfigParams::m_shadows_resolution);
     value = modern_gl ? value : StringUtils::toWString("0");
     info_text[7] = _("Shadow resolution: %s", value);
+    bool has_pcss = (UserConfigParams::m_shadows_resolution > 0 && UserConfigParams::m_pcss && modern_gl);
+    info_text[8] = has_pcss ? _("Soft shadows: Enabled") :
+                              _("Soft shadows: Disabled");
+    info_text[9] = UserConfigParams::m_dof ? _("Depth of field: Enabled") :
+                                              _("Depth of field: Disabled");
     value = vk        ? StringUtils::toWString("Vulkan")    :
-            modern_gl ? StringUtils::toWString("OpenGL")    :
-            gl        ? StringUtils::toWString("OpenGL 2")  : 
+            modern_gl ? _("OpenGL (modern)")                :
+            gl        ? _("OpenGL (legacy)")                :
             directx   ? StringUtils::toWString("DirectX 9") : _("Unknown");
-    info_text[8] = value;
+    info_text[10] = value;
 
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 11; i++)
     {
         pos = core::rect<s32>(current_x, current_y, current_x, current_y);
         font->draw(info_text[i].c_str(), pos, white_color, true, false);

@@ -62,7 +62,7 @@ GameProtocol::GameProtocol()
 {
     m_network_item_manager = static_cast<NetworkItemManager*>
         (Track::getCurrentTrack()->getItemManager());
-    m_data_to_send = getNetworkString();
+    m_data_to_send = ProtocolUtils::getNetworkString(m_type);
 }   // GameProtocol
 
 //-----------------------------------------------------------------------------
@@ -179,7 +179,7 @@ void GameProtocol::controllerAction(int kart_id, PlayerAction action,
 // ----------------------------------------------------------------------------
 /** Called when a controller event is received - either on the server from
  *  a client, or on a client from the server. It sorts the event into the
- *  RewindManager's network event queue. The server will also send this 
+ *  RewindManager's network event queue. The server will also send this
  *  event immediately to all clients (except to the original sender).
  */
 void GameProtocol::handleControllerAction(Event *event)
@@ -257,7 +257,7 @@ void GameProtocol::handleControllerAction(Event *event)
 void GameProtocol::sendItemEventConfirmation(int ticks)
 {
     assert(NetworkConfig::get()->isClient());
-    NetworkString *ns = getNetworkString(5);
+    NetworkString *ns = ProtocolUtils::getNetworkString(m_type, 5);
     ns->addUInt8(GP_ITEM_CONFIRMATION).addUInt32(ticks);
     // This message can be sent unreliable, it's not critical if it doesn't
     // get delivered, a future update will come through

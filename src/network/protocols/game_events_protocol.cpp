@@ -25,7 +25,7 @@
  *  in the synchronous notifyEvent function here, decode the message
  *  and call the original game code. The functions name are identical,
  *  e.g. kartFinishedRace(some parameter) is called from the GameEventManager
- *  on the server, and the received message is then handled by 
+ *  on the server, and the received message is then handled by
  *  kartFinishedRace(const NetworkString &).
  */
 GameEventsProtocol::GameEventsProtocol() : Protocol(PROTOCOL_GAME_EVENTS)
@@ -115,7 +115,7 @@ bool GameEventsProtocol::notifyEvent(Event* event)
             float f = LobbyProtocol::get<ServerLobby>()
                 ->getStartupBoostOrPenaltyForKart(
                 event->getPeer()->getAveragePing(), kart_id);
-            NetworkString *ns = getNetworkString();
+            NetworkString *ns = ProtocolUtils::getNetworkString(m_type);
             ns->setSynchronous(true);
             ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id).addFloat(f);
             sendMessageToPeers(ns, true);
@@ -160,7 +160,7 @@ bool GameEventsProtocol::notifyEvent(Event* event)
  */
 void GameEventsProtocol::kartFinishedRace(AbstractKart *kart, float time)
 {
-    NetworkString *ns = getNetworkString(20);
+    NetworkString *ns = ProtocolUtils::getNetworkString(m_type, 20);
     ns->setSynchronous(true);
     ns->addUInt8(GE_KART_FINISHED_RACE).addUInt8(kart->getWorldKartId())
        .addFloat(time);
@@ -195,7 +195,7 @@ void GameEventsProtocol::kartFinishedRace(const NetworkString &ns)
 // ----------------------------------------------------------------------------
 void GameEventsProtocol::sendStartupBoost(uint8_t kart_id)
 {
-    NetworkString *ns = getNetworkString();
+    NetworkString *ns = ProtocolUtils::getNetworkString(m_type);
     ns->setSynchronous(true);
     ns->addUInt8(GE_STARTUP_BOOST).addUInt8(kart_id);
     sendToServer(ns, /*reliable*/true);
